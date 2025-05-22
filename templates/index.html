@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스토리 다이브 - AI 인터랙티브 스토리텔링</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        
+        .story-text {
+            white-space: pre-wrap;
+            line-height: 1.8;
+        }
+        
+        .choice-btn {
+            transition: all 0.2s ease;
+            transform: scale(1);
+        }
+        
+        .choice-btn:hover {
+            transform: scale(1.02);
+        }
+        
+        .choice-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 타입라이터 효과 관련 CSS 제거 또는 주석 처리 */
+        /*
+        .typewriter {
+            overflow: hidden;
+            border-right: .15em solid #4f46e5; 
+            white-space: pre-wrap; 
+            margin: 0 auto; 
+            letter-spacing: .15em; 
+            animation: 
+                typing 3.5s steps(40, end),
+                blink-caret .75s step-end infinite;
+        }
+        
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+        
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: #4f46e5; }
+        }
+        */
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-book-open text-2xl"></i>
+                    <h1 class="text-2xl md:text-3xl font-bold">스토리 다이브</h1>
+                </div>
+                <button id="new-story-btn" class="bg-white text-indigo-600 px-4 py-2 rounded-lg font-medium hover:bg-indigo-50 transition">
+                    <i class="fas fa-plus mr-2"></i>새로운 모험
+                </button>
+            </div>
+            <p class="mt-2 opacity-90">AI가 만들어주는 인터랙티브 스토리텔링</p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <!-- Story Container -->
+        <div id="story-container" class="bg-white rounded-xl shadow-md p-6 mb-8 min-h-64">
+            <div id="story-text" class="story-text text-lg">
+                환영합니다! 스토리 다이브에서 당신만의 모험을 시작해보세요.<br><br>
+                아래의 "새로운 모험 시작하기" 버튼을 눌러 AI가 만들어주는 독특한 스토리를 경험하거나, 직접 세계관을 설정할 수 있습니다.
+            </div>
+        </div>
+
+        <!-- Choices Container -->
+        <div id="choices-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <!-- Choices will be dynamically added here -->
+        </div>
+
+        <!-- Custom Input -->
+        <div id="input-container" class="bg-white rounded-xl shadow-md p-6">
+            <div class="flex flex-col md:flex-row gap-4">
+                <input type="text" id="custom-input" 
+                    class="flex-grow px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                    placeholder="직접 행동을 입력하세요 (예: '문을 열고 안으로 들어간다')">
+                <button id="submit-input" class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-indigo-700 transition flex items-center justify-center">
+                    <i class="fas fa-paper-plane mr-2"></i>입력
+                </button>
+            </div>
+            <p class="text-sm text-gray-500 mt-2">AI가 생성한 선택지가 마음에 들지 않는다면 직접 입력해보세요!</p>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loading-indicator" class="hidden text-center py-8">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mb-4"></div>
+            <p class="text-lg text-gray-600">AI가 다음 이야기를 생성 중입니다...</p>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-100 py-6">
+        <div class="container mx-auto px-4 text-center text-gray-600">
+            <p>© 2023 스토리 다이브. 모든 권리 보유.</p>
+            <p class="mt-2 text-sm">AI 기반 인터랙티브 스토리텔링 플랫폼</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const storyContainer = document.getElementById('story-container');
+            const storyTextElement = document.getElementById('story-text');
+            const choicesContainer = document.getElementById('choices-container');
+            const customInput = document.getElementById('custom-input');
+            const submitInputButton = document.getElementById('submit-input');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const newStoryBtn = document.getElementById('new-story-btn');
+            
+            let currentStoryContext = { history: "" };
+            let isLoading = false;
+
+            // Show loading indicator
+            function showLoading(show) {
+                if (show) {
+                    const loadingHTML = `
+                        <div class="text-center py-8">
+                            <div class="inline-block animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-600 mb-3"></div>
+                            <p class="text-lg text-gray-600">AI가 다음 이야기를 생성 중입니다...</p>
+                        </div>
+                    `;
+                    storyTextElement.innerHTML = loadingHTML; // 스토리 영역에 스피너와 로딩 메시지 표시
+                    choicesContainer.innerHTML = ''; // 선택지 클리어
+                } else {
+                    // 로딩이 끝나면 displayStory가 내용을 채울 것이므로 특별히 여기서 비울 필요는 없음
+                }
+                customInput.disabled = show;
+                submitInputButton.disabled = show;
+                newStoryBtn.disabled = show; 
+                const existingChoiceButtons = choicesContainer.querySelectorAll('button');
+                existingChoiceButtons.forEach(button => button.disabled = show);
+            }
+
+            // Update the UI with current story
+            function displayStory(text) {
+                storyTextElement.innerHTML = ''; // Clear previous content (e.g. loading message)
+                // storyTextElement.classList.add('typewriter'); // 타입라이터 효과 제거
+                storyTextElement.textContent = text.replace(/\\\\n/g, '\\n'); 
+
+                // 타입라이터 효과 관련 setTimeout 제거
+                // setTimeout(() => {
+                //     storyTextElement.classList.remove('typewriter');
+                // }, 3500); 
+            }
+
+            function updateChoices(choices) {
+                choicesContainer.innerHTML = '';
+                if (choices && choices.length > 0) {
+                    choices.forEach((choice, index) => {
+                        const button = document.createElement('button');
+                        button.className = 'choice-btn bg-white border-2 border-indigo-500 text-indigo-600 px-6 py-4 rounded-xl font-medium hover:bg-indigo-50 transition fade-in';
+                        button.style.animationDelay = `${0.1 * index}s`;
+                        button.textContent = choice.text;
+                        button.addEventListener('click', () => handleAction({ choice_id: choice.id, choice_text: choice.text }));
+                        choicesContainer.appendChild(button);
+                    });
+                }
+            }
+            
+            async function handleAction(actionPayload) {
+                if (isLoading) {
+                    console.log("Already processing a request.");
+                    return;
+                }
+                isLoading = true;
+                showLoading(true);
+
+                try {
+                    const response = await fetch('/api/action', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...actionPayload, context: currentStoryContext }),
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({ error: `HTTP error! status: ${response.status} - ${response.statusText}` }));
+                        throw new Error(errorData.error || `HTTP error! status: ${response.status} - ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    currentStoryContext = data.new_context;
+                    displayStory(data.text);
+                    updateChoices(data.choices);
+
+                } catch (error) {
+                    console.error("Error during action:", error);
+                    displayStory(`오류가 발생했습니다: ${error.message}. 잠시 후 다시 시도해주세요.`);
+                    updateChoices([]); 
+                } finally {
+                    isLoading = false;
+                    showLoading(false);
+                    customInput.focus();
+                }
+            }
+
+            function submitCustomInputAction() {
+                const inputText = customInput.value.trim();
+                if (!inputText) {
+                    return;
+                }
+                customInput.value = ''; 
+                handleAction({ custom_input: inputText });
+            }
+            
+            // Event Listeners
+            newStoryBtn.addEventListener('click', () => {
+                if (confirm("정말로 현재 이야기를 중단하고 새로운 모험을 시작하시겠습니까?")) {
+                    currentStoryContext = { history: "" };
+                    storyTextElement.textContent = "새로운 모험을 불러오는 중입니다...";
+                    handleAction({ custom_input: "모험 시작" });
+                }
+            });
+            
+            submitInputButton.addEventListener('click', submitCustomInputAction);
+            
+            customInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    submitCustomInputAction();
+                }
+            });
+            
+            // Initial story load
+            function initializeStory() {
+                // storyTextElement.textContent = "AI 어드벤처를 시작합니다. 잠시만 기다려주세요..."; // 로딩 메시지는 showLoading에서 처리
+                handleAction({ custom_input: "모험 시작" });
+            }
+
+            // Start the first story when the page loads
+            initializeStory();
+            customInput.focus();
+        });
+    </script>
+</body>
+</html>

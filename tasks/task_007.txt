@@ -1,0 +1,18 @@
+# Task ID: 7
+# Title: Implement Story Generation Logic
+# Status: done
+# Dependencies: 3, 6
+# Priority: high
+# Description: Develop the core logic for generating story continuations based on user choices and maintaining story context.
+# Details:
+- Create a story manager module that:
+  * Maintains the current story state and history
+  * Formats prompts for the Gemini Flash API
+  * Processes API responses into readable story segments
+  * Extracts or generates 2-4 choices from API responses
+  * Handles context window limitations
+- Implement logic to combine user choices with story context
+- Create functions to format story text for display
+
+# Test Strategy:
+Test with various user inputs and choices to ensure coherent story generation. Verify context management works correctly for longer stories. Check that choices are relevant to the current story context.

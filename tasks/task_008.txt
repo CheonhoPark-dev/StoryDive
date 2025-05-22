@@ -1,0 +1,16 @@
+# Task ID: 8
+# Title: Implement User Input Processing
+# Status: done
+# Dependencies: 5, 7
+# Priority: medium
+# Description: Create the logic to handle both button-based choices and free-text user inputs for story progression.
+# Details:
+- Implement handlers for button choice selection
+- Create logic for processing free-text user inputs
+- Develop input validation and sanitization
+- Create a unified interface for processing both types of inputs
+- Implement logic to format user inputs for the LLM API
+- Add support for special commands (e.g., help, restart)
+
+# Test Strategy:
+Test with various input types including edge cases. Verify both button choices and free text inputs produce coherent story continuations. Test input validation with potentially problematic inputs.
