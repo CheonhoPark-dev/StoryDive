@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const editWorldGenreInput = document.getElementById('edit-world-genre');
     const editWorldTagsInput = document.getElementById('edit-world-tags');
     const editWorldCoverImageUrlInput = document.getElementById('edit-world-cover-image-url');
+    const editWorldStartingPointInput = document.getElementById('edit-world-starting-point');
     const editWorldFeedback = document.getElementById('edit-world-feedback');
     const cancelEditWorldBtn = document.getElementById('cancel-edit-world-btn');
     let editingWorldId = null;
@@ -478,6 +479,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 adventureToSave.currentStoryHistory = currentStoryContext.history;
                 await saveOrUpdateOngoingAdventure(adventureToSave);
+                if (actionType === "start_new_adventure") {
+                    await updateContinueAdventureButtonState();
+                }
             } else if (actionType === "load_story") {
                 if (data.story_history) {
                     displayStory(data.last_ai_response || data.story_history);
@@ -513,7 +517,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } finally {
             showLoading(false);
-            await updateContinueAdventureButtonState(); 
         }
     }
 
@@ -632,6 +635,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (editWorldGenreInput) editWorldGenreInput.value = world.genre || '';
         if (editWorldTagsInput) editWorldTagsInput.value = Array.isArray(world.tags) ? world.tags.join(', ') : (world.tags || '');
         if (editWorldCoverImageUrlInput) editWorldCoverImageUrlInput.value = world.cover_image_url || '';
+        if (editWorldStartingPointInput) editWorldStartingPointInput.value = world.starting_point || '';
         
         if (worldSelectionContainer) worldSelectionContainer.classList.remove('hidden'); 
         if (publicWorldsSection) publicWorldsSection.classList.add('hidden');
@@ -655,7 +659,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             is_public: formData.get('is_public') === 'on',
             genre: formData.get('genre'),
             tags: formData.get('tags') ? formData.get('tags').split(',').map(tag => tag.trim()).filter(tag => tag) : [],
-            cover_image_url: formData.get('cover_image_url')
+            cover_image_url: formData.get('cover_image_url'),
+            starting_point: formData.get('starting_point')
         };
         
         if (!updatedWorld.title || !updatedWorld.setting) {
@@ -786,7 +791,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (!window.currentUser && window.location.pathname !== '/login' && !window.location.pathname.startsWith('/api/')) {
             window.location.href = '/login';
         }
-        await updateContinueAdventureButtonState();
     }
 
     // Event Listeners
@@ -857,7 +861,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 is_public: formData.get('is_public') === 'on',
                 genre: formData.get('genre'),
                 tags: formData.get('tags') ? formData.get('tags').split(',').map(tag => tag.trim()).filter(tag => tag) : [],
-                cover_image_url: formData.get('cover_image_url')
+                cover_image_url: formData.get('cover_image_url'),
+                starting_point: formData.get('starting_point')
             };
 
             if (!worldData.title || !worldData.setting) {
@@ -936,6 +941,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await initializeApplication(true);
             } else if (_event === 'SIGNED_OUT') {
                 if (mainContentHeader) mainContentHeader.textContent = "모험을 선택하세요";
+                await updateContinueAdventureButtonState();
             } else if (_event === 'INITIAL_SESSION') {
                 if (window.currentUser) {
                     await initializeApplication();
@@ -945,7 +951,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else if (_event === 'USER_UPDATED') {
                 await updateUserUI();
             }
-            await updateContinueAdventureButtonState();
         });
     } else {
         await checkUserSession();
@@ -1064,38 +1069,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- 테마 토글 로직 ---
-    function applyTheme(theme) {
-        if (theme === 'light') {
-            document.body.classList.add('light-mode');
-            if (themeToggleIcon) {
-                themeToggleIcon.classList.remove('fa-sun');
-                themeToggleIcon.classList.add('fa-moon');
-            }
-            if (themeToggleText) themeToggleText.textContent = '다크 모드';
-        } else {
-            document.body.classList.remove('light-mode');
-            if (themeToggleIcon) {
-                themeToggleIcon.classList.remove('fa-moon');
-                themeToggleIcon.classList.add('fa-sun');
-            }
-            if (themeToggleText) themeToggleText.textContent = '라이트 모드';
-        }
-        localStorage.setItem('theme', theme);
-    }
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    const themeToggleIcon = document.getElementById('theme-toggle-icon');
+    const themeToggleText = themeToggleBtn ? themeToggleBtn.querySelector('.sidebar-text') : null;
 
-    function toggleTheme() {
-        const currentThemeIsLight = document.body.classList.contains('light-mode');
-        applyTheme(currentThemeIsLight ? 'dark' : 'light');
-    }
+    // main.js에 있던 applyTheme, toggleTheme, applyInitialTheme 함수들은 theme.js의 것을 사용하므로 제거하거나 주석 처리합니다.
+    // theme.js의 initTheme를 호출하여 필요한 DOM 요소들을 전달합니다.
+    // theme.js에서 toggleTheme 함수를 export 했으므로, main.js의 toggleTheme 함수는 제거하거나 이름을 변경해야 충돌을 피할 수 있습니다.
+    // 여기서는 main.js의 toggleTheme 함수는 삭제하고, theme.js의 것을 직접 사용하도록 합니다.
 
-    function applyInitialTheme() {
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) {
-            applyTheme(savedTheme);
-        } else {
-            applyTheme('dark'); 
-        }
-    }
+    // function applyTheme(theme) { ... } // 기존 main.js의 applyTheme 함수 주석 처리 또는 삭제
+    // function toggleTheme() { ... } // 기존 main.js의 toggleTheme 함수 주석 처리 또는 삭제
+    // function applyInitialTheme() { ... } // 기존 main.js의 applyInitialTheme 함수 주석 처리 또는 삭제
+
     // --- 테마 토글 로직 끝 ---
 
     // 이벤트 리스너
@@ -1109,7 +1095,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 페이지 로드 시 마지막으로 한번 더 버튼 상태 업데이트 (이제 initializeApplication에서 처리)
     applyInitialSidebarState();
-    applyInitialTheme();
+    // applyInitialTheme(); // theme.js의 initTheme 내에서 applyInitialTheme가 호출되므로 중복 호출 방지
+    if (themeToggleIcon && themeToggleText) { // themeToggleBtn이 아니라 icon과 text 요소 존재 여부 확인
+        initTheme(themeToggleIcon, themeToggleText); // api. 접두사 제거
+    }
 
     document.addEventListener('keydown', (event) => {
         if (gameContainer && !gameContainer.classList.contains('hidden') && !isLoading) {
@@ -1129,14 +1118,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         initSidebar(sidebar, mainContentArea, sidebarToggleIcon);
     }
     // Theme 초기화
-    if (themeToggleBtn) { // themeToggleBtn은 <button id="theme-toggle-btn">
-        const actualThemeToggleIcon = document.getElementById('theme-toggle-icon'); // <i id="theme-toggle-icon">
-        const actualThemeToggleText = themeToggleBtn.querySelector('.sidebar-text'); // <span class="sidebar-text">
-
-        if (actualThemeToggleIcon) {
-            initTheme(actualThemeToggleIcon, actualThemeToggleText); // theme.js의 initTheme 호출
-        } else {
-            console.warn("테마 토글 아이콘 요소를 찾을 수 없습니다. (ID: theme-toggle-icon)");
-        }
+    // applyInitialTheme(); // 이 호출은 theme.js의 initTheme 내부에서 처리됩니다.
+    if (themeToggleIcon && themeToggleText) { // themeToggleBtn이 아니라 icon과 text 요소 존재 여부 확인
+        initTheme(themeToggleIcon, themeToggleText); // api. 접두사 제거
     }
 });

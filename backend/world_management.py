@@ -51,6 +51,10 @@ def create_world():
     if isinstance(cover_image_url, str) and not cover_image_url.strip(): # 빈 문자열이면 None으로 처리
         cover_image_url = None
 
+    starting_point = data.get('starting_point') # starting_point 가져오기
+    # starting_point는 빈 문자열일 수도 있고, 아예 없을 수도 (None) 있습니다.
+    # Supabase는 None 값을 null로 잘 처리하므로 특별한 타입 검증은 생략 가능 (문자열로 가정).
+
     client = get_db_client()
     if not client:
         return jsonify({"error": "데이터베이스 연결에 실패했습니다."}), 500
@@ -64,7 +68,8 @@ def create_world():
             "is_system_world": False,
             "tags": tags,
             "genre": genre.strip() if genre and isinstance(genre, str) else None, # Ensure genre is stripped or None
-            "cover_image_url": cover_image_url.strip() if cover_image_url and isinstance(cover_image_url, str) else None # Ensure URL is stripped or None
+            "cover_image_url": cover_image_url.strip() if cover_image_url and isinstance(cover_image_url, str) else None, # Ensure URL is stripped or None
+            "starting_point": starting_point.strip() if starting_point and isinstance(starting_point, str) else (starting_point if starting_point is None else "") # starting_point 추가
         }
                 
         response = client.table("worlds").insert(world_data).execute()
@@ -98,7 +103,7 @@ def get_public_worlds():
 
     try:
         query = client.table("worlds") \
-                      .select("id, title, setting, is_public, genre, tags, cover_image_url, created_at, updated_at, user_id") \
+                      .select("id, title, setting, is_public, genre, tags, cover_image_url, created_at, updated_at, user_id, starting_point") \
                       .eq("is_public", True) \
                       .eq("is_system_world", False) # 시스템 프리셋 세계관 제외
         
@@ -137,7 +142,7 @@ def get_my_worlds():
 
     try:
         user_id = str(current_user.id)
-        query = client.table("worlds").select("id, title, setting, is_public, genre, tags, cover_image_url, created_at, updated_at") \
+        query = client.table("worlds").select("id, title, setting, is_public, genre, tags, cover_image_url, created_at, updated_at, starting_point") \
                       .eq("user_id", user_id) \
                       .eq("is_system_world", False)
         response = query.order('updated_at', desc=True).execute()
@@ -170,7 +175,7 @@ def update_world(world_id):
     if not data:
         return jsonify({"error": "요청 본문이 비어있거나 JSON 형식이 아닙니다."}), 400
 
-    allowed_fields = ['title', 'setting', 'is_public', 'tags', 'genre', 'cover_image_url']
+    allowed_fields = ['title', 'setting', 'is_public', 'tags', 'genre', 'cover_image_url', 'starting_point'] # 'starting_point' 추가
     update_data = {}
     if 'title' in data and data['title'] and isinstance(data['title'], str) and data['title'].strip():
         update_data['title'] = data['title'].strip()
@@ -185,6 +190,16 @@ def update_world(world_id):
     if 'cover_image_url' in data and (data['cover_image_url'] is None or (isinstance(data['cover_image_url'], str) and data['cover_image_url'].strip())):
         update_data['cover_image_url'] = data['cover_image_url'].strip() if data['cover_image_url'] else None
     
+    if 'starting_point' in data: # starting_point 수정 로직 추가
+        # starting_point는 빈 문자열로 설정하여 내용을 지우거나, null (None)로 설정할 수도 있어야 합니다.
+        sp_value = data['starting_point']
+        if sp_value is None:
+            update_data['starting_point'] = None
+        elif isinstance(sp_value, str):
+            update_data['starting_point'] = sp_value.strip()
+        # else: # 다른 타입이면 오류 처리하거나 무시 (여기서는 무시)
+            # pass 
+            
     if not update_data:
         return jsonify({"error": "수정할 내용이 없습니다."}), 400
     

@@ -1,12 +1,14 @@
 print("--- backend/__init__.py 로드됨 ---")
 from flask import Flask, render_template
 from flask_cors import CORS
+from supabase import create_client, Client
+import os
 
 # 내부 모듈 임포트. 이 임포트들은 create_app 함수 내부 또는 외부에서 앱 컨텍셔스트를 고려하여 위치할 수 있습니다.
 # 예를 들어, config는 앱 생성 전에 로드될 수 있고, 블루프린트는 앱 객체가 생성된 후 등록됩니다.
-from .config import SUPABASE_URL, SUPABASE_KEY, GEMINI_API_KEY
+from .config import SUPABASE_URL, SUPABASE_KEY, FLASK_SECRET_KEY, GEMINI_API_KEY
 from .database import init_supabase_client, supabase_client as db_supabase_client # database.py에서 supabase_client도 가져옵니다.
-from .gemini_utils import PRESET_WORLDS, DEFAULT_PROMPT_TEMPLATE # Gemini API 초기화는 gemini_utils에서 수행
+from .gemini_utils import DEFAULT_PROMPT_TEMPLATE # Gemini API 초기화는 gemini_utils에서 수행
 
 # Blueprint 임포트
 from .story_routes import story_bp
@@ -58,11 +60,11 @@ def create_app():
 
     @app.route('/')
     def home():
-        # PRESET_WORLDS는 gemini_utils에서 가져와서 전달
-        preset_world_options = {key: world_data["title"] for key, world_data in PRESET_WORLDS.items()}
+        # PRESET_WORLDS는 더 이상 사용하지 않으므로 관련 코드 제거
+        # preset_world_options = {key: world_data["title"] for key, world_data in PRESET_WORLDS.items()}
         return render_template(
             'index.html', 
-            preset_worlds=preset_world_options, 
+            # preset_worlds=preset_world_options, # 제거
             supabase_url=SUPABASE_URL, 
             supabase_anon_key=SUPABASE_KEY
         )

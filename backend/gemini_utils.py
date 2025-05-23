@@ -15,38 +15,6 @@ if GEMINI_API_KEY:
 else:
     print("경고: GEMINI_API_KEY가 설정되지 않아 Gemini API가 초기화되지 않았습니다 (gemini_utils.py).")
 
-# 미리 정의된 세계관 (app.py에서 이동)
-PRESET_WORLDS = {
-    "tail_star_cafe": {
-        "title": "꼬리별 다방의 수상한 손님들",
-        "setting": """
-용돈이 필요했던 당신은 동네 구석, 간판도 제대로 없는 작은 카페 '꼬리별 다방'에 덜컥 아르바이트생으로 취직하게 되었다. 
-겉보기엔 그저 오래되고 아늑한, 식빵 토스트와 핸드드립 커피가 맛있을 것 같은 평범한 카페. 하지만 첫날부터 뭔가 이상하다.
-사장님은 하루 종일 꾸벅꾸벅 조는 삼색 고양이인데, 가끔씩 잠꼬대로 "라떼는 말이야..." 같은 알 수 없는 소리를 중얼거린다. 
-단골손님들은 하나같이 독특하다. 모자를 푹 눌러쓴 회색 토끼는 매일 당근 주스만 시키며 노트북으로 무언가를 열심히 타이핑하고, 
-선글라스를 낀 시바견은 창가 자리에 앉아 바깥을 감시하듯 지나가는 사람들만 뚫어져라 쳐다본다. 
-가끔은 뒷마당에서 부엉이가 "오늘의 추천 메뉴는 뭔가요, 부엉?" 하고 묻는 소리가 들리는 것 같기도 하다.
-알고 보니 '꼬리별 다방'은 말하는 동물들의 비밀 아지트이자, 그들 세계의 중요한 정보가 오고 가는 사랑방 같은 곳! 
-인간 아르바이트생은 당신이 처음이다. 동물들은 당신 앞에서는 최대한 평범한 '동물' 손님인 척하지만, 어딘가 어설프고 귀여운 구석이 자꾸만 드러난다.
-오늘은 유난히 카페 안이 소란스럽다. 단골손님인 수다쟁이 앵무새 '앵두' 씨가 아끼는 반짝이는 구슬 목걸이를 잃어버렸다며 온 카페를 뒤집어 놓고 있기 때문이다. 
-"내 구슬! 내 소중한 구슬이 없어졌어, 짹짹!"
-당신은 어딘가 어설픈 동물들의 비밀을 눈치챈 것 같기도, 아닌 것 같기도 한 상태로 이 소동의 한가운데에 서 있다. 
-어쩌면 이 카페에서 당신의 평범했던 일상은 이제 끝났을지도 모른다. 
-당신의 첫 번째 임무는 앵두 씨의 구슬 목걸이를 찾는 것을 돕는 것일까? 아니면 이 동물들의 정체를 모른 척하며 조용히 커피만 내릴 것인가?
-"""
-    },
-    "cyberpunk_detective": {
-        "title": "네오-서울의 사이버펑크 탐정",
-        "setting": """
-2077년, 네온사인과 끝없이 내리는 산성비에 젖은 도시 네오-서울. 당신은 한때 잘나갔지만 지금은 퇴물 취급받는 사립탐정이다. 
-어느 날, 허름한 사무실 문을 두드리는 소리와 함께 거액의 의뢰가 들어온다. 
-거대 기업 '미래 코퍼레이션'의 CEO가 사라졌고, 그의 딸이 당신에게 사건을 의뢰한 것이다. 
-경찰도 손을 뗀 사건. 당신은 이 사건을 해결하고 재기할 수 있을 것인가, 아니면 도시의 어둠 속으로 사라질 것인가?
-당신의 첫 번째 결정은 의뢰를 수락하는 것에서부터 시작된다.
-"""
-    }
-}
-
 # 기본 프롬프트 템플릿 (app.py에서 이동)
 DEFAULT_PROMPT_TEMPLATE = """당신은 흥미진진한 이야기를 만들어내는 스토리텔러 AI입니다.
 다음은 현재까지의 이야기입니다:
@@ -54,25 +22,71 @@ DEFAULT_PROMPT_TEMPLATE = """당신은 흥미진진한 이야기를 만들어내
 
 플레이어의 마지막 행동: {player_action}
 
-이제 다음 이야기를 생성하고, 플레이어가 선택할 수 있는 2-4개의 선택지를 제시해주세요.
-각 선택지는 다음 형식이어야 합니다:
-- 선택지 텍스트
+이제 다음 이야기를 최소 150자 이상으로 풍부하고 상세하게 생성하고, 플레이어가 선택할 수 있는 2-4개의 선택지를 제시해주세요.
+각 선택지는 다음 형식이어야 하며, 50자 내외의 한 문장으로 요약되어야 합니다:
+- 선택지 텍스트 (50자 내외, 한 문장)
 
 이야기:
-[여기에 다음 이야기 전개]
+[여기에 다음 이야기 전개, 최소 150자 이상으로 작성해주세요.]
 
 선택지:
 - [선택지 1]
 - [선택지 2]
 """
 
+SUMMARIZE_PROMPT_TEMPLATE = """다음은 매우 긴 이야기의 일부입니다. 이 내용을 약 {max_length}자 내외로 간결하게 요약해주세요. 이야기의 핵심적인 사건, 등장인물, 현재 상황의 주요 맥락을 포함해야 합니다. 요약은 계속 이어질 이야기의 자연스러운 배경 설명이 될 수 있도록 작성해주세요.
+
+원본 이야기:
+{story_text}
+
+요약 (이야기의 흐름을 알 수 있도록, 약 {max_length}자 내외):
+"""
+
+def summarize_story_with_gemini(story_text_to_summarize, target_char_length=800):
+    """
+    Gemini API를 사용하여 긴 이야기를 요약하는 함수.
+    target_char_length는 목표 요약문의 글자 수.
+    """
+    if not GEMINI_API_KEY:
+        print("경고: GEMINI_API_KEY가 없어 요약을 건너뜁니다. 원본의 일부를 반환합니다.")
+        # 요약 건너뛸 때 너무 짧지 않게, 의미있는 부분을 반환하도록 시도
+        truncated_text = story_text_to_summarize
+        if len(truncated_text) > target_char_length + 200: # 원본이 목표보다 충분히 길다면
+            truncated_text = "..." + truncated_text[-(target_char_length + 100):] # 최근 부분을 좀 더 많이 가져옴
+        elif len(truncated_text) > target_char_length:
+             truncated_text = truncated_text[:target_char_length]
+
+        return truncated_text + "... (중요: 이야기의 앞부분이 생략되었거나 요약되지 않았습니다. Gemini API 키를 확인하세요.)"
+
+    model = genai.GenerativeModel('gemini-1.5-flash-latest')
+    prompt = SUMMARIZE_PROMPT_TEMPLATE.format(story_text=story_text_to_summarize, max_length=target_char_length)
+    
+    estimated_tokens_for_summary = min(int(target_char_length * 1.5), 2048)
+
+    try:
+        print(f"요약 시도: 원본 길이 {len(story_text_to_summarize)}, 목표 요약 길이 {target_char_length}, 예상 토큰 {estimated_tokens_for_summary}")
+        generation_config = genai.types.GenerationConfig(
+            max_output_tokens=int(estimated_tokens_for_summary),
+            temperature=0.5 
+        )
+        response = model.generate_content(prompt, generation_config=generation_config)
+        summary = response.text.strip()
+        summary = re.sub(r"^요약\s*\(이야기의 흐름을 알 수 있도록,\s*약\s*\d+자\s*내외\):\s*", "", summary, flags=re.IGNORECASE).strip()
+        print(f"요약 결과 (길이: {len(summary)}): {summary[:100]}...")
+        return summary
+    except Exception as e:
+        print(f"Gemini API 요약 중 오류: {e}")
+        error_prefix = f"... (중요: 이야기 앞부분 요약 중 오류 발생: {e}). 이야기의 최근 부분은 다음과 같습니다: ..."
+        return error_prefix + story_text_to_summarize[-(target_char_length // 2):]
+
 def call_gemini_api(prompt):
     """
-    Gemini API를 호출하여 응답을 생성하는 함수
+    Gemini API를 호출하여 응답을 생성하는 함수.
+    선택지가 2개 미만일 경우 최대 3번까지 재시도합니다.
     """
     if not GEMINI_API_KEY:
         print("경고: GEMINI_API_KEY가 설정되지 않아 API를 호출할 수 없습니다. 예시 데이터를 반환합니다.")
-        example_story = f"API 키 없음. 프롬프트 기반 예시 이야기: 사용자가 '{prompt[:50]}...'에 대해 액션을 취했습니다."
+        example_story = f"API 키 없음. 프롬프트 기반 예시 이야기: 사용자가 '{{prompt[:50]}}...'에 대해 액션을 취했습니다."
         example_choices = [
             {"id": "example_choice_no_key_1", "text": "API 키 없음 예시 선택지 1"},
             {"id": "example_choice_no_key_2", "text": "API 키 없음 예시 선택지 2"},
@@ -80,96 +94,192 @@ def call_gemini_api(prompt):
         return example_story, example_choices
 
     model = genai.GenerativeModel('gemini-1.5-flash-latest')
-    try:
-        response = model.generate_content(prompt)
-        generated_text = response.text.strip()
-        
-        story_part = ""
-        choices_list_text = []
+    
+    max_retries = 3
+    attempts = 0
+    story_part = ""
+    choices_list_text = []
 
-        choices_marker = None
-        raw_story_part = generated_text
+    while attempts < max_retries:
+        attempts += 1
+        current_prompt = prompt
+        if attempts > 1:
+            current_prompt += "\n\n(중요: 반드시 2개 이상의 명확하고 독립적인 선택지를 생성해주세요. 각 선택지는 플레이어가 다음에 취할 행동을 나타냅니다.)"
+            print(f"재시도 {attempts-1}/{max_retries-1}. 프롬프트에 선택지 개수 요청 추가.")
 
-        if "\n선택지:" in generated_text:
-            choices_marker = "\n선택지:"
-        elif "\nChoices:" in generated_text:
-            choices_marker = "\nChoices:"
-        elif "\n선택지 목록:" in generated_text:
-            choices_marker = "\n선택지 목록:"
-        elif "\n**선택지:**" in generated_text:
-            choices_marker = "\n**선택지:**"
-        elif "\n**Choices:**" in generated_text:
-            choices_marker = "\n**Choices:**"
-        elif "\n**당신의 선택은?**" in generated_text:
-            choices_marker = "\n**당신의 선택은?**"
+        print(f"Gemini API 호출 시도: {attempts}/{max_retries}")
+        try:
+            generation_config = genai.types.GenerationConfig(
+                max_output_tokens=800, # 토큰 늘려서 다양한 결과 유도
+                temperature=0.7 + (0.1 * (attempts -1)) # 재시도 시 약간 더 창의적으로
+            )
+            response = model.generate_content(current_prompt, generation_config=generation_config)
+            generated_text = response.text.strip()
+            
+            raw_story_part = generated_text 
 
-        
-        if choices_marker:
-            parts = generated_text.split(choices_marker, 1)
-            raw_story_part = parts[0] 
-            if len(parts) > 1:
-                choices_section_text = parts[1].strip()
-                potential_lines = choices_section_text.split('\n')
+            possible_markers = [
+                "\n선택지:", "\nChoices:", "\n선택지 목록:", 
+                "\n**선택지:**", "\n**Choices:**", "\n**당신의 선택은?**",
+                "\n다음 선택지 중에서 골라주세요:", "\n다음 행동을 선택하세요:"
+            ]
+            choices_marker = None
+            for marker in possible_markers:
+                marker_lower = marker.lower()
+                generated_text_lower = generated_text.lower()
+                if marker_lower in generated_text_lower:
+                    # 실제 마커 위치를 찾기 위해 원본 텍스트에서 검색
+                    try:
+                        actual_marker_pos = generated_text_lower.index(marker_lower)
+                        choices_marker = generated_text[actual_marker_pos : actual_marker_pos + len(marker)]
+                        break
+                    except ValueError:
+                        pass # 이론적으로 발생하지 않아야 함
+            
+            story_part_candidate = generated_text # 기본값은 전체 텍스트
+            choices_section_text_candidate = "" # 기본값은 빈 문자열
+
+            if choices_marker:
+                parts = generated_text.split(choices_marker, 1)
+                story_part_candidate = parts[0].strip()
+                if len(parts) > 1:
+                    choices_section_text_candidate = parts[1].strip()
+            
+            # "이야기:" 또는 "Story:" 마커 제거
+            story_part_candidate = re.sub(r"^(이야기|Story):\s*", "", story_part_candidate, flags=re.IGNORECASE).strip()
+
+            temp_choices_list_text = []
+            if choices_section_text_candidate: # 선택지 섹션이 있을 경우 파싱
+                potential_lines = choices_section_text_candidate.split('\n')
                 current_choice_text = ""
                 for line in potential_lines:
                     stripped_line = line.strip()
                     if not stripped_line: continue
-                    choice_prefix_match = re.match(r"^[-*]\s*|^\d+\.\s*|^[a-zA-Z]\.\s*", stripped_line)
+                    choice_prefix_match = re.match(r"^(?:[-*•✓✔※◦]|[가-힣]\.|[a-zA-Z]\.|\d+\.)\s+", stripped_line)
                     text_to_add = stripped_line
                     is_new_choice_line = False
                     if choice_prefix_match:
                         text_to_add = stripped_line[choice_prefix_match.end():].strip()
                         is_new_choice_line = True
+                    
                     if is_new_choice_line:
-                        if current_choice_text: choices_list_text.append(current_choice_text.strip())
+                        if current_choice_text: 
+                            temp_choices_list_text.append(current_choice_text.strip())
                         current_choice_text = text_to_add
-                    elif current_choice_text: current_choice_text += " " + text_to_add
-                    elif text_to_add: current_choice_text = text_to_add
-                if current_choice_text: choices_list_text.append(current_choice_text.strip())
-        else: 
-            lines = generated_text.split('\n')
-            story_content_lines = []
-            choice_pattern = r"^(?:\*\*)?\d+\.\s*(?:\*\*)?(.+)"
-            temp_choices = []
-            collecting_story = True
-
-            for line in lines:
-                stripped_line = line.strip()
-                match = re.match(choice_pattern, stripped_line)
-                if match and len(temp_choices) < 4:
-                    collecting_story = False
-                    choice_text = match.group(1).replace("**","").strip()
-                    if choice_text:
-                        temp_choices.append(choice_text)
-                elif collecting_story:
-                    story_content_lines.append(line)
-                elif not collecting_story and temp_choices:
-                    pass 
+                    elif current_choice_text: 
+                        current_choice_text += " " + text_to_add 
+                    elif text_to_add: # 마커 없는 첫 줄도 선택지로 간주할 수 있도록
+                        current_choice_text = text_to_add
+                if current_choice_text: 
+                    temp_choices_list_text.append(current_choice_text.strip())
             
-            raw_story_part = "\n".join(story_content_lines).strip()
-            choices_list_text = temp_choices
+            # 선택지 마커가 없었지만, 전체 텍스트에서 패턴으로 선택지 추출 시도
+            elif not temp_choices_list_text:
+                lines = story_part_candidate.split('\n') # 이 경우 story_part_candidate는 generated_text 전체임
+                story_content_lines = []
+                choice_pattern = r"^(?:[-*•✓✔※◦]|[가-힣]\.|[a-zA-Z]\.|\d+\.)\s+(.+)"
+                collecting_story = True
+                # 문맥상 이야기와 선택지를 구분하기 위한 추가 검사 (예: 특정 키워드)
+                story_keywords = ["이야기:", "상황:", "갑자기", "그때", "그리고", "하지만"] # 이야기 시작을 알리는 키워드
 
-        story_part = raw_story_part 
-        story_part = story_part.replace("이야기:", "", 1).replace("Story:", "", 1).strip()
+                for i, line in enumerate(lines):
+                    stripped_line = line.strip()
+                    if not stripped_line: continue
 
-        story_part = re.sub(r"\n*\*\*선택지:\*\*\s*$", "", story_part, flags=re.MULTILINE | re.IGNORECASE).strip()
-        story_part = re.sub(r"\n*선택지:\s*$", "", story_part, flags=re.MULTILINE | re.IGNORECASE).strip()
-        story_part = re.sub(r"\n*당신은 무엇을 선택하겠습니까\??\s*$", "", story_part, flags=re.MULTILINE | re.IGNORECASE).strip()
-        story_part = re.sub(r"\n*다음 중 원하는 행동을 선택하세요:?\s*$", "", story_part, flags=re.MULTILINE | re.IGNORECASE).strip()
-        story_part = re.sub(r"\n*어떤 선택을 하시겠습니까\??\s*$", "", story_part, flags=re.MULTILINE | re.IGNORECASE).strip()
-        story_part = re.sub(r"\n*\*\*당신은 어떻게 할 것인가\?\*\*\s*$", "", story_part, flags=re.MULTILINE | re.IGNORECASE).strip()
+                    is_likely_story = any(keyword in stripped_line for keyword in story_keywords) or len(stripped_line) > 80 # 긴 문장은 이야기일 가능성
+                    match = re.match(choice_pattern, stripped_line)
 
-        if len(choices_list_text) > 4:
-            choices_list_text = choices_list_text[:4]
-        
-        parsed_choices = [{"id": f"gen_choice_{i+1}", "text": text} for i, text in enumerate(choices_list_text)]
-        
-        if not story_part and not parsed_choices and generated_text:
-             story_part = "API로부터 응답을 받았으나, 이야기/선택지 형식이 예상과 다릅니다: " + generated_text
-        elif not story_part and generated_text and not parsed_choices: 
-            story_part = generated_text
+                    if match and (not is_likely_story or len(temp_choices_list_text) > 0) and len(temp_choices_list_text) < 4:
+                        collecting_story = False 
+                        choice_text = match.group(1).replace("**", "").strip()
+                        if choice_text and len(choice_text) > 2 : # 매우 짧은 선택지 제외 (예: "네.")
+                            temp_choices_list_text.append(choice_text)
+                    elif collecting_story:
+                        story_content_lines.append(line)
+                    elif not collecting_story and temp_choices_list_text and not match and len(stripped_line) < 50: # 선택지에 이어지는 짧은 설명일 수 있음
+                        temp_choices_list_text[-1] += " " + stripped_line
+                    elif not collecting_story and not temp_choices_list_text and match: # 첫 선택지 발견
+                         collecting_story = False
+                         choice_text = match.group(1).replace("**", "").strip()
+                         if choice_text and len(choice_text) > 2:
+                            temp_choices_list_text.append(choice_text)
+                
+                if collecting_story or not temp_choices_list_text: # 선택지를 못 찾았으면 전체가 이야기
+                    story_part = story_part_candidate
+                    choices_list_text = []
+                else:
+                    story_part = "\n".join(story_content_lines).strip()
+                    choices_list_text = temp_choices_list_text
+            
+            # 최종 정리
+            if not choices_list_text and temp_choices_list_text: # 위에서 할당 안됐을 경우
+                choices_list_text = temp_choices_list_text
+            if not story_part and story_part_candidate and choices_list_text: # 이야기 부분이 할당 안됐는데 선택지는 있는 경우
+                story_part = story_part_candidate
+            elif not story_part and not choices_list_text: # 둘 다 없으면 전체가 이야기
+                story_part = generated_text
 
-        return story_part, parsed_choices
-    except Exception as e:
-        print(f"Gemini API 호출 중 오류: {e}")
-        return f"Gemini API 호출 중 오류가 발생했습니다: {e}", [] 
+            # 빈 선택지, 너무 짧은 선택지 제거
+            choices_list_text = [choice for choice in choices_list_text if choice and len(choice.strip()) > 2]
+            # 중복 선택지 제거 (순서 유지)
+            seen = set()
+            choices_list_text = [x for x in choices_list_text if not (x in seen or seen.add(x))]
+
+            if len(choices_list_text) >= 2:
+                print(f"성공 (시도 {attempts}): {len(choices_list_text)}개의 선택지 생성됨.")
+                parsed_choices = [{"id": f"choice_{i+1}", "text": choice_text} for i, choice_text in enumerate(choices_list_text)]
+                return story_part.strip(), parsed_choices
+            else:
+                print(f"경고 (시도 {attempts}): {len(choices_list_text)}개의 선택지만 생성됨. (내용: '{choices_list_text}')")
+                if attempts == max_retries:
+                    print(f"최대 재시도 ({max_retries}) 후에도 선택지가 2개 미만입니다. 현재 확보된 내용으로 반환합니다.")
+                    # 확보된 이야기와 선택지 (0개 또는 1개)로 반환, 부족하면 fallback 추가
+                    if not story_part and generated_text: story_part = generated_text # 이야기라도 확보
+                    
+                    current_choices = [{"id": f"choice_{i+1}", "text": choice_text} for i, choice_text in enumerate(choices_list_text)]
+                    if len(current_choices) == 0:
+                        current_choices.extend([
+                            {"id": "fallback_0_1", "text": "계속한다..."},
+                            {"id": "fallback_0_2", "text": "다른 행동을 시도한다."}
+                        ])
+                    elif len(current_choices) == 1:
+                        current_choices.append({"id": "fallback_1_1", "text": "다른 가능성을 찾아본다."})
+                    return story_part.strip(), current_choices
+
+        except Exception as e:
+            print(f"Gemini API 호출 중 심각한 오류 발생 (시도 {attempts}/{max_retries}): {e}")
+            if attempts == max_retries:
+                error_story = story_part if story_part else "이야기 생성 중 API 오류가 발생하여 내용을 가져올 수 없었습니다."
+                error_choices = [
+                    {"id": "error_api_1", "text": "알겠습니다. (오류)"},
+                    {"id": "error_api_2", "text": "새 게임 시작하기"},
+                ]
+                return error_story, error_choices
+                
+    # 모든 재시도 실패 (루프 정상 종료, 보통 선택지 부족)
+    final_story_part = story_part if story_part else "이야기 생성에 실패했습니다. 여러 번 시도했지만 이야기나 선택지를 충분히 만들지 못했습니다."
+    final_choices = []
+    if choices_list_text: # 재시도 중 선택지가 1개라도 있었다면
+        final_choices = [{"id": f"final_choice_{i+1}", "text": choice_text} for i, choice_text in enumerate(choices_list_text)]
+        if len(final_choices) < 2:
+             final_choices.append({"id": "final_fallback_plus_1", "text": "다른 행동을 고려한다."})
+             if len(final_choices) < 2: # 그래도 2개가 안되면 (원래 0개였으면)
+                  final_choices.append({"id": "final_fallback_plus_2", "text": "상황을 다시 본다."})
+    else: # 선택지 파싱이 전혀 안 된 경우
+        final_choices = [
+            {"id": "final_error_empty_1", "text": "계속하기 (내용 없음)"},
+            {"id": "final_error_empty_2", "text": "처음부터 다시 시작"}
+        ]
+    
+    # 혹시 모를 중복 제거 한번 더
+    seen_final = set()
+    final_choices = [x for x in final_choices if not (x['text'] in seen_final or seen_final.add(x['text']))]
+    while len(final_choices) < 2:
+        unique_fallback_text = f"추가 선택지 {len(final_choices) + 1}"
+        if not any(fc['text'] == unique_fallback_text for fc in final_choices):
+            final_choices.append({"id": f"final_fallback_extra_{len(final_choices)}", "text": unique_fallback_text})
+        else: # 만약을 위한 무한루프 방지
+            break
+
+    print(f"최종 반환: 이야기 '{final_story_part[:50]}...', 선택지 ({len(final_choices)}개): {final_choices}")
+    return final_story_part.strip(), final_choices 
