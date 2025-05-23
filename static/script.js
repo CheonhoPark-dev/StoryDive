@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     }
-            
+
     async function handleStoryApiCall(actionType, payloadData = {}) {
         if (isLoading && actionType !== 'load_story' && actionType !== 'start_new_adventure') {
             console.log("다른 요청을 이미 처리 중입니다.");
@@ -253,17 +253,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-        } catch (error) { 
+        } catch (error) {
             console.error("handleStoryApiCall 처리 중 예외:", error.message);
             displayStory(`오류가 발생했습니다: ${error.message}. 잠시 후 '처음으로' 버튼을 눌러 다시 시도해주세요.`);
-            updateChoices([]);
+            updateChoices([]); 
             // 오류 발생 시 게임 화면을 유지할 수도 있고, 월드 선택으로 보낼 수도 있음.
             // 현재는 게임 화면에 오류 메시지를 표시하도록 함.
             // showGameScreen(); // 오류 메시지 표시를 위해 게임 화면 유지
         } finally {
             showLoading(false);
             if (gameContainer && !gameContainer.classList.contains('hidden') && customInput) {
-                customInput.focus();
+            customInput.focus();
             }
         }
     }
@@ -308,7 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (window.location.pathname !== '/login') {
                 window.location.href = '/login';
             }
-            return; 
+            return;
         }
 
         console.log("사용자 확인됨 (initializeApplication):", currentUser.email);
@@ -344,17 +344,17 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         console.warn("'new-adventure-btn' 요소를 찾을 수 없습니다.");
     }
-    
+
     if(submitInputButton) {
-        submitInputButton.addEventListener('click', submitCustomInputAction);
+    submitInputButton.addEventListener('click', submitCustomInputAction);
     }
     if(customInput) {
         customInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                submitCustomInputAction();
-            }
-        });
+            submitCustomInputAction();
+        }
+    });
     }
 
     document.querySelectorAll('.preset-world-btn').forEach(button => {
