@@ -1,3 +1,7 @@
+import * as api from './api.js';
+import { initSidebar, toggleSidebar } from './sidebar.js';
+import { initTheme, toggleTheme } from './theme.js';
+
 document.addEventListener('DOMContentLoaded', async () => {
     // DOM Elements from index.html
     const worldSelectionContainer = document.getElementById('world-selection-container');
@@ -53,9 +57,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     let storySessionId = null;
     let currentWorldTitle = null;
 
-    let supabaseClient = null;
-    let currentUser = null;
-    let currentSession = null;
+    // `supabaseClient`, `currentUser`, `currentSession`은 api.js에서 window 객체를 통해 접근하므로,
+    // 여기서도 window 객체에 할당하거나, api.js가 이 값들을 참조할 수 있는 다른 방법을 마련해야 합니다.
+    // 우선은 기존 방식대로 유지하고, 전역 supabaseClient를 api.js에서도 사용할 수 있도록 합니다.
+    window.supabaseClient = null;
+    window.currentUser = null;
+    window.currentSession = null;
 
     // 사이드바 및 토글 버튼 추가
     const sidebar = document.getElementById('sidebar');
@@ -76,36 +83,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ONGOING_ADVENTURES_KEY = 'storyDiveOngoingAdventures';
     const MAX_ONGOING_ADVENTURES = 5;
 
-    // --- localStorage 헬퍼 함수 (이제 서버 API 호출로 변경될 예정) --- 
+    // --- localStorage 헬퍼 함수들은 api.js로 이전되었으므로 해당 함수 호출로 변경 --- 
     async function getOngoingAdventures() {
-        if (!currentUser || !currentSession) {
+        if (!window.currentUser || !window.currentSession) {
             console.warn("사용자 인증 정보가 없어 서버에서 진행중인 모험 목록을 가져올 수 없습니다.");
             return [];
         }
         try {
-            const response = await fetch('/api/adventures', {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${currentSession.access_token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                console.error('서버에서 진행중인 모험 목록 로드 실패:', response.status, errorData);
-                return [];
-            }
-            const adventuresFromServer = await response.json();
+            // api.js의 getOngoingAdventuresAPI 함수 사용
+            const adventuresFromServer = await api.getOngoingAdventuresAPI();
             return adventuresFromServer;
         } catch (error) {
-            console.error('getOngoingAdventures API 호출 중 네트워크 오류:', error);
+            console.error('getOngoingAdventures API 호출 중 오류 (main.js):', error);
             return [];
         }
     }
 
     async function saveOrUpdateOngoingAdventure(adventureData) {
-        console.log('[DEBUG] saveOrUpdateOngoingAdventure called. currentUser:', currentUser);
-        if (!currentUser || !currentSession) {
+        console.log('[DEBUG] saveOrUpdateOngoingAdventure called. currentUser:', window.currentUser);
+        if (!window.currentUser || !window.currentSession) {
             console.warn("사용자 인증 정보가 없어 서버에 진행중인 모험을 저장/업데이트할 수 없습니다.");
             return;
         }
@@ -123,34 +119,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             world_id: adventureData.worldId,
             world_title: adventureData.worldTitle,
             summary: summary,
-            user_id: currentUser.id
+            user_id: window.currentUser.id // api.js 내부에서 user_id를 직접 가져오지 않으므로 여기서 전달
         };
         console.log('[DEBUG] Payload to be sent to /api/adventures (saveOrUpdateOngoingAdventure):', payload);
 
         try {
-            const response = await fetch('/api/adventures', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${currentSession.access_token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                console.error('서버에 진행중인 모험 저장/업데이트 실패:', response.status, errorData);
-                return;
-            }
-            console.log("서버에 진행중인 모험 저장/업데이트 성공", await response.json());
+            // api.js의 saveOrUpdateOngoingAdventureAPI 함수 사용
+            const result = await api.saveOrUpdateOngoingAdventureAPI(payload);
+            console.log("서버에 진행중인 모험 저장/업데이트 성공", result);
             await updateContinueAdventureButtonState();
         } catch (error) {
-            console.error('saveOrUpdateOngoingAdventure API 호출 중 네트워크 오류:', error);
+            console.error('saveOrUpdateOngoingAdventure API 호출 중 오류 (main.js):', error);
         }
     }
 
     async function removeOngoingAdventure(sessionId) {
-        if (!currentUser || !currentSession) {
+        if (!window.currentUser || !window.currentSession) {
             console.warn("사용자 인증 정보가 없어 서버에서 진행중인 모험을 삭제할 수 없습니다.");
             return;
         }
@@ -160,26 +144,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         try {
-            const response = await fetch(`/api/adventures/${sessionId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${currentSession.access_token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                console.error('서버에서 진행중인 모험 삭제 실패:', response.status, errorData);
-                return;
-            }
-            console.log("서버에서 진행중인 모험 삭제 성공", await response.json());
+            // api.js의 removeOngoingAdventureAPI 함수 사용
+            const result = await api.removeOngoingAdventureAPI(sessionId);
+            console.log("서버에서 진행중인 모험 삭제 성공", result);
             await updateContinueAdventureButtonState();
             if (ongoingAdventuresModal && !ongoingAdventuresModal.classList.contains('hidden')) {
                 await displayOngoingAdventuresModal();
             }
         } catch (error) {
-            console.error('removeOngoingAdventure API 호출 중 네트워크 오류:', error);
+            console.error('removeOngoingAdventure API 호출 중 오류 (main.js):', error);
         }
     }
     // --- localStorage 헬퍼 함수 끝 --- 
@@ -191,7 +164,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        const adventures = await getOngoingAdventures();
+        const adventures = await getOngoingAdventures(); // main.js 내의 (수정된) getOngoingAdventures 호출
         ongoingAdventuresListContainer.innerHTML = '';
 
         if (adventures.length === 0) {
@@ -223,6 +196,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 continueButton.innerHTML = '<i class="fas fa-play mr-1"></i> 이어하기';
                 continueButton.addEventListener('click', () => {
                     closeModal(ongoingAdventuresModal);
+                    // handleStoryApiCall은 이제 전역이 아닌 이 파일 내의 함수
                     handleStoryApiCall("load_story", { session_id: adv.session_id, world_key: adv.world_id, world_title: adv.world_title });
                 });
 
@@ -233,7 +207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 deleteButton.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     if (confirm(`'${adv.world_title}' 모험을 목록에서 삭제하시겠습니까?`)) {
-                        await removeOngoingAdventure(adv.session_id);
+                        await removeOngoingAdventure(adv.session_id); // main.js 내의 (수정된) removeOngoingAdventure 호출
                     }
                 });
 
@@ -261,13 +235,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (typeof supabase !== 'undefined' && supabaseUrl && supabaseAnonKey) {
         try {
-            supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
-            console.log("Supabase client initialized (script.js)");
+            window.supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
+            console.log("Supabase client initialized (main.js)");
         } catch (error) {
-            console.error("Supabase client initialization failed (script.js):", error);
+            console.error("Supabase client initialization failed (main.js):", error);
         }
     } else {
-        console.warn("Supabase global object or URL/Key not found (script.js).");
+        console.warn("Supabase global object or URL/Key not found (main.js).");
     }
 
     function getSessionId() {
@@ -306,13 +280,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         showLoading(false);
 
         await fetchAndDisplayPublicWorlds(); 
-
-        // 로그인 상태와 관계없이 myWorldsSection을 초기에 숨기므로, 여기서 추가적인 myWorldsSection 제어는 불필요.
-        // updateContinueAdventureButtonState(); // 이 함수는 이제 initializeApplication 끝에서 호출
     }
 
     function showGameScreen(worldTitle = "스토리 진행 중") {
-        if (worldSelectionContainer) worldSelectionContainer.classList.add('hidden'); // 게임 화면 시 선택 화면 전체 숨김
+        if (worldSelectionContainer) worldSelectionContainer.classList.add('hidden');
         if (publicWorldsSection) publicWorldsSection.classList.add('hidden');
         if (myWorldsSection) myWorldsSection.classList.add('hidden');
         if (createWorldFormContainer) createWorldFormContainer.classList.add('hidden');
@@ -353,7 +324,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         if (mainContentHeader) mainContentHeader.textContent = "내 세계관 목록";
         
-        if (currentUser) {
+        if (window.currentUser) {
             fetchAndDisplayMyWorlds().then(() => {
             });
         } else {
@@ -361,7 +332,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (myWorldsListContainer) myWorldsListContainer.innerHTML = '<p class="text-gray-400 text-center">내 세계관을 보려면 로그인이 필요합니다.</p>';
         }
     }
-
 
     function showLoading(show, message = "처리 중...") {
         isLoading = show;
@@ -412,37 +382,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function updateContinueAdventureButtonState() {
         if (!continueAdventureBtnSidebar) return;
 
-        // 로그인 상태에 관계없이 버튼은 항상 표시
         continueAdventureBtnSidebar.classList.remove('hidden');
 
-        if (!currentUser || !currentSession) {
-            // 로그아웃 상태: 버튼 비활성화, 클릭 시 로그인 유도 (모달 내에서 처리)
+        if (!window.currentUser || !window.currentSession) {
             continueAdventureBtnSidebar.disabled = true;
-            // continueAdventureBtnSidebar.title = "로그인 후 이용 가능합니다."; // 툴크 추가 (선택사항)
-            // 버튼 텍스트나 아이콘으로 상태를 표시할 수도 있습니다.
-            // 예: continueAdventureBtnSidebar.querySelector('.adventure-count').textContent = '!'; 
             return;
         }
 
-        // 로그인 상태: 진행중인 모험 개수 확인
         try {
-            const adventures = await getOngoingAdventures(); 
+            const adventures = await getOngoingAdventures();
             if (adventures && adventures.length > 0) {
                 continueAdventureBtnSidebar.disabled = false;
-                // continueAdventureBtnSidebar.title = "진행중인 모험 이어하기";
-                // 선택적: 버튼 텍스트나 뱃지에 모험 개수 표시
-                // const countElement = continueAdventureBtnSidebar.querySelector('.adventure-count');
-                // if (countElement) countElement.textContent = adventures.length;
             } else {
-                continueAdventureBtnSidebar.disabled = false; // 모험이 없어도 버튼은 활성화 (클릭 시 모달에서 "없음" 메시지 표시)
-                // continueAdventureBtnSidebar.title = "진행중인 모험이 없습니다. 새로 시작해보세요!";
-                // const countElement = continueAdventureBtnSidebar.querySelector('.adventure-count');
-                // if (countElement) countElement.textContent = '0';
+                continueAdventureBtnSidebar.disabled = false;
             }
         } catch (error) {
-            console.error("진행중인 모험 상태 업데이트 중 오류:", error);
-            continueAdventureBtnSidebar.disabled = true; // 오류 발생 시 비활성화
-            // continueAdventureBtnSidebar.title = "모험 정보를 불러오는 중 오류가 발생했습니다.";
+            console.error("진행중인 모험 상태 업데이트 중 오류 (main.js):", error);
+            continueAdventureBtnSidebar.disabled = true;
         }
     }
 
@@ -496,23 +452,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             current_story_history: currentStoryContext.history,
             ...payloadData
         };
-
-        const requestHeaders = { 'Content-Type': 'application/json' };
-        if (supabaseClient && currentSession && currentSession.access_token) {
-            requestHeaders['Authorization'] = `Bearer ${currentSession.access_token}`;
-        }
-
+        
         try {
-            const response = await fetch('/api/action', {
-                method: 'POST',
-                headers: requestHeaders,
-                body: JSON.stringify(requestBody)
-            });
-            const data = await response.json();
-
-            if (!response.ok || data.error) {
-                throw new Error(data.error || `서버 오류 (HTTP ${response.status})`);
-            }
+            const data = await api.postStoryAction(requestBody);
 
             if (data.world_title) {
                 currentWorldTitle = data.world_title;
@@ -543,9 +485,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     currentStoryContext = { history: data.story_history };
                     currentWorldId = data.world_id;
                     adventureToSave.worldId = currentWorldId;
-                    adventureToSave.worldTitle = currentWorldTitle || "알 수 없는 세계관";
+                    adventureToSave.worldTitle = currentWorldTitle || data.world_title || "알 수 없는 세계관";
                     adventureToSave.currentStoryHistory = currentStoryContext.history;
-                    if (mainContentHeader) mainContentHeader.textContent = currentWorldTitle || "이어하기";
+
+                    if (mainContentHeader) mainContentHeader.textContent = adventureToSave.worldTitle;
                     await saveOrUpdateOngoingAdventure(adventureToSave);
                 } else {
                     alert("이어할 모험을 찾지 못했습니다.");
@@ -561,7 +504,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
         } catch (error) {
-            console.error(`API 호출 (${actionType}) 오류:`, error, requestBody);
+            console.error(`API 호출 (${actionType}) 오류 (main.js):`, error, requestBody);
             displayStory(`오류가 발생했습니다: ${error.message}. 잠시 후 다시 시도해주세요.`);
             updateChoices([]); 
             if (actionType === "load_story") { 
@@ -593,7 +536,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function fetchAndDisplayMyWorlds() {
-        if (!currentUser) {
+        if (!window.currentUser) {
             if (myWorldsLoadingMsg) myWorldsLoadingMsg.textContent = '로그인이 필요합니다.';
             if (myWorldsListContainer) myWorldsListContainer.innerHTML = '';
             return;
@@ -605,19 +548,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (myWorldsFeedback) myWorldsFeedback.textContent = '';
 
         try {
-            const response = await fetch('/api/worlds/mine', {
-                headers: {
-                    'Authorization': `Bearer ${currentSession.access_token}`
-                }
-            });
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: '내 세계관 목록 로드 실패' }));
-                throw new Error(errorData.error || `HTTP error ${response.status}`);
-            }
-            const worlds = await response.json();
+            const worlds = await api.getMyWorlds();
             displayMyWorlds(worlds);
         } catch (error) {
-            console.error('내 세계관 목록 로드 오류:', error);
+            console.error('내 세계관 목록 로드 오류 (main.js):', error);
             if (myWorldsLoadingMsg) myWorldsLoadingMsg.textContent = '';
             if (myWorldsFeedback) myWorldsFeedback.textContent = `오류: ${error.message}`;
             if (myWorldsListContainer) myWorldsListContainer.innerHTML = '<p class="text-gray-400">내 세계관을 불러오는데 실패했습니다.</p>';
@@ -652,7 +586,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     tagsElement.textContent = `태그: ${Array.isArray(world.tags) ? world.tags.join(', ') : world.tags}`;
                     textDiv.appendChild(tagsElement);
                 }
-
 
                 const buttonsDiv = document.createElement('div');
                 buttonsDiv.className = 'space-x-2 flex items-center';
@@ -734,18 +667,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         showLoadingSpinner(true, 'edit-world-feedback', '세계관 업데이트 중...');
 
         try {
-            const response = await fetch(`/api/worlds/${editingWorldId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${currentSession.access_token}`
-                },
-                body: JSON.stringify(updatedWorld)
-            });
-            const result = await response.json();
-            if (!response.ok) {
-                throw new Error(result.error || `HTTP error ${response.status}`);
-            }
+            const result = await api.updateWorld(editingWorldId, updatedWorld);
             if (editWorldFeedback) {
                 editWorldFeedback.textContent = '세계관이 성공적으로 업데이트되었습니다!';
                 editWorldFeedback.classList.remove('text-red-500');
@@ -756,7 +678,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await showWorldSelectionScreen();
             }, 1500);
         } catch (error) {
-            console.error('세계관 업데이트 오류:', error);
+            console.error('세계관 업데이트 오류 (main.js):', error);
             if (editWorldFeedback) {
                 editWorldFeedback.textContent = `오류: ${error.message}`;
                 editWorldFeedback.classList.add('text-red-500');
@@ -772,16 +694,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         showLoadingSpinner(true, 'my-worlds-feedback', '세계관 삭제 중...');
         try {
-            const response = await fetch(`/api/worlds/${worldId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${currentSession.access_token}`
-                }
-            });
-            const result = await response.json();
-            if (!response.ok) {
-                throw new Error(result.error || `HTTP error ${response.status}`);
-            }
+            const result = await api.deleteWorld(worldId);
             if (myWorldsFeedback) {
                 myWorldsFeedback.textContent = `'${worldTitle}' 세계관이 성공적으로 삭제되었습니다.`;
                 myWorldsFeedback.classList.remove('text-red-500');
@@ -789,7 +702,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             await fetchAndDisplayMyWorlds();
         } catch (error) {
-            console.error('세계관 삭제 오류:', error);
+            console.error('세계관 삭제 오류 (main.js):', error);
             if (myWorldsFeedback) {
                 myWorldsFeedback.textContent = `삭제 오류: ${error.message}`;
                 myWorldsFeedback.classList.add('text-red-500');
@@ -817,12 +730,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-
     async function updateUserUI() {
         if (userInfoDisplay && userEmailDisplay && logoutButton) {
-            if (currentUser) {
+            if (window.currentUser) {
                 userInfoDisplay.classList.remove('hidden');
-                userEmailDisplay.textContent = currentUser.email;
+                userEmailDisplay.textContent = window.currentUser.email;
                 logoutButton.classList.remove('hidden');
                 
                 if (window.location.pathname === '/login') {
@@ -842,36 +754,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function checkUserSession(isInitialLoad = false) {
-        if (!supabaseClient) {
+        if (!window.supabaseClient) {
             console.warn("Supabase client not available for session check.");
             await updateUserUI();
-            if (!currentUser && window.location.pathname !== '/login' && !window.location.pathname.startsWith('/api/')) {
+            if (!window.currentUser && window.location.pathname !== '/login' && !window.location.pathname.startsWith('/api/')) {
                 window.location.href = '/login';
             }
             return;
         }
         try {
-            const { data, error } = await supabaseClient.auth.getSession();
+            const { data, error } = await window.supabaseClient.auth.getSession();
             if (error) throw error;
             
-            currentSession = data.session;
-            currentUser = data.session ? data.session.user : null;
+            window.currentSession = data.session;
+            window.currentUser = data.session ? data.session.user : null;
 
         } catch (error) {
             console.error("Error getting session:", error);
-            currentSession = null;
-            currentUser = null;
+            window.currentSession = null;
+            window.currentUser = null;
         }
         await updateUserUI();
     }
 
     async function initializeApplication(isAfterLogin = false) {
-        await checkUserSession(true); 
+        await checkUserSession(true);
         await updateContinueAdventureButtonState();
 
-        if (currentUser || window.location.pathname === '/') {
+        if (window.currentUser || window.location.pathname === '/') {
             await showWorldSelectionScreen();
-        } else if (!currentUser && window.location.pathname !== '/login' && !window.location.pathname.startsWith('/api/')) {
+        } else if (!window.currentUser && window.location.pathname !== '/login' && !window.location.pathname.startsWith('/api/')) {
             window.location.href = '/login';
         }
         await updateContinueAdventureButtonState();
@@ -879,50 +791,44 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Event Listeners
     if (submitInputButton && customInput) {
-    submitInputButton.addEventListener('click', submitCustomInputAction);
+        submitInputButton.addEventListener('click', submitCustomInputAction);
         customInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-            submitCustomInputAction();
-        }
-    });
+                submitCustomInputAction();
+            }
+        });
     }
 
     if (homeBtn) {
         homeBtn.addEventListener('click', resetAndGoToWorldSelection);
     }
 
-    if (logoutButton && supabaseClient) {
+    if (logoutButton && window.supabaseClient) {
         logoutButton.addEventListener('click', async () => {
             console.log("로그아웃 버튼 클릭됨");
             try {
                 console.log("supabaseClient.auth.signOut() 호출 시도...");
-                const { error } = await supabaseClient.auth.signOut();
+                const { error } = await window.supabaseClient.auth.signOut();
                 
                 if (error) {
-                    console.error("Supabase 로그아웃 오류 (반환된 error 객체):", error);
+                    console.error("Supabase 로그아웃 오류:", error);
                     alert(`로그아웃 중 오류 발생: ${error.message}`);
                 } else {
-                    console.log("Supabase 로그아웃 성공 (반환된 error 객체 없음)");
-                    currentUser = null;
-                    currentSession = null;
-                    sessionStorage.removeItem('storySessionId');
-                    sessionStorage.removeItem('currentWorldId');
-                    sessionStorage.removeItem('isNewSession');
+                    console.log("Supabase 로그아웃 성공");
+                    window.currentUser = null;
+                    window.currentSession = null;
+                    sessionStorage.clear();
                     storySessionId = null;
                     currentWorldId = null;
                     currentWorldTitle = null;
-
-                    await updateUserUI(); 
-
+                    await updateUserUI();
                     if (window.location.pathname !== '/login') {
                         window.location.href = '/login';
-                    } else {
-                        window.location.reload();
                     }
                 }
             } catch (e) {
-                console.error("supabaseClient.auth.signOut() 호출 중 예외 발생:", e);
-                alert(`로그아웃 처리 중 예기치 않은 오류가 발생했습니다: ${e.message}`);
+                console.error("supabaseClient.auth.signOut() 호출 중 예외:", e);
+                alert(`로그아웃 처리 중 예기치 않은 오류: ${e.message}`);
             }
         });
     }
@@ -936,11 +842,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         showMyWorldsBtnSidebar.addEventListener('click', showMyWorldsList);
     }
 
-
     if (createWorldForm) {
         createWorldForm.addEventListener('submit', async function(event) {
             event.preventDefault();
-            if (!currentUser) {
+            if (!window.currentUser) {
                 if(createWorldFeedback) createWorldFeedback.textContent = '세계관을 생성하려면 로그인이 필요합니다.';
                 if(createWorldFeedback) createWorldFeedback.classList.add('text-red-500');
                 return;
@@ -964,18 +869,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             showLoadingSpinner(true, 'create-world-feedback', '세계관 생성 중...');
 
             try {
-                const response = await fetch('/api/worlds', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${currentSession.access_token}`
-                    },
-                    body: JSON.stringify(worldData)
-                });
-                const result = await response.json();
-                if (!response.ok) {
-                    throw new Error(result.error || `HTTP error ${response.status}`);
-                }
+                const result = await api.createWorld(worldData);
                 if (createWorldFeedback) {
                     createWorldFeedback.textContent = '세계관이 성공적으로 생성되었습니다!';
                     createWorldFeedback.classList.remove('text-red-500');
@@ -988,7 +882,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }, 1500);
 
             } catch (error) {
-                console.error('세계관 생성 오류:', error);
+                console.error('세계관 생성 오류 (main.js):', error);
                 if (createWorldFeedback) {
                     createWorldFeedback.textContent = `오류: ${error.message}`;
                     createWorldFeedback.classList.add('text-red-500');
@@ -1028,24 +922,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         closeOngoingAdventuresModalBtn.addEventListener('click', () => closeModal(ongoingAdventuresModal));
     }
 
-    if (supabaseClient) {
-        supabaseClient.auth.onAuthStateChange(async (_event, session) => {
-            console.log("Auth state changed:", _event, session);
-            const previousUser = currentUser;
-            currentSession = session;
-            currentUser = session ? session.user : null;
+    // Supabase Auth State Change Listener
+    if (window.supabaseClient) {
+        window.supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+            console.log("Auth state changed (main.js):", _event, session);
+            const previousUser = window.currentUser;
+            window.currentSession = session;
+            window.currentUser = session ? session.user : null;
 
             await updateUserUI();
 
             if (_event === 'SIGNED_IN' && !previousUser) {
                 await initializeApplication(true);
             } else if (_event === 'SIGNED_OUT') {
-                if (window.location.pathname !== '/login') {
-                    window.location.href = '/login';
-                }
-                 if (mainContentHeader) mainContentHeader.textContent = "모험을 선택하세요";
+                if (mainContentHeader) mainContentHeader.textContent = "모험을 선택하세요";
             } else if (_event === 'INITIAL_SESSION') {
-                if (currentUser) {
+                if (window.currentUser) {
                     await initializeApplication();
                 } else if (window.location.pathname !== '/login' && !window.location.pathname.startsWith('/api/')) {
                     window.location.href = '/login';
@@ -1053,6 +945,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else if (_event === 'USER_UPDATED') {
                 await updateUserUI();
             }
+            await updateContinueAdventureButtonState();
         });
     } else {
         await checkUserSession();
@@ -1072,18 +965,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         publicWorldsListContainer.innerHTML = '';
 
         try {
-            const response = await fetch('/api/worlds', {
-                headers: {
-                }
-            });
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: '공개 세계관 목록 로드 실패' }));
-                throw new Error(errorData.error || `HTTP error ${response.status}`);
-            }
-            const worlds = await response.json();
+            const worlds = await api.getPublicWorlds();
             displayPublicWorlds(worlds);
         } catch (error) {
-            console.error('공개 세계관 목록 로드 오류:', error);
+            console.error('공개 세계관 목록 로드 오류 (main.js):', error);
             if (publicWorldsLoadingMsg) publicWorldsLoadingMsg.textContent = '';
             if (publicWorldsFeedback) publicWorldsFeedback.textContent = `오류: ${error.message}`;
             if (publicWorldsListContainer) publicWorldsListContainer.innerHTML = '<p class="text-gray-400 md:col-span-full text-center">공개된 세계관을 불러오는데 실패했습니다.</p>';
@@ -1098,7 +983,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (publicWorldsLoadingMsg) publicWorldsLoadingMsg.classList.add('hidden');
             worlds.forEach(world => {
                 const worldCard = document.createElement('div');
-                worldCard.className = 'content-card bg-gray-800 p-4 rounded-lg shadow hover:shadow-indigo-500/30 transition-shadow flex flex-col justify-between'; 
+                worldCard.className = 'content-card p-4 rounded-lg shadow hover:shadow-indigo-500/30 transition-shadow flex flex-col justify-between'; 
 
                 const textDiv = document.createElement('div');
                 const titleElement = document.createElement('h4');
@@ -1205,12 +1090,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function applyInitialTheme() {
         const savedTheme = localStorage.getItem('theme');
-        // 시스템 설정 감지 (선택적)
-        // const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         if (savedTheme) {
             applyTheme(savedTheme);
         } else {
-            // 기본은 다크 모드로 설정 (또는 prefersDark ? 'dark' : 'light' 사용 가능)
             applyTheme('dark'); 
         }
     }
@@ -1226,9 +1108,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // 페이지 로드 시 마지막으로 한번 더 버튼 상태 업데이트 (이제 initializeApplication에서 처리)
-    // await updateContinueAdventureButtonState(); 
-    applyInitialSidebarState(); // 페이지 로드 시 사이드바 초기 상태 적용
-    applyInitialTheme(); // 페이지 로드 시 테마 초기 상태 적용
+    applyInitialSidebarState();
+    applyInitialTheme();
 
     document.addEventListener('keydown', (event) => {
         if (gameContainer && !gameContainer.classList.contains('hidden') && !isLoading) {
@@ -1241,4 +1122,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     });
+
+    // --- 초기화 ---
+    // Sidebar 초기화
+    if (sidebar && mainContentArea && sidebarToggleIcon) {
+        initSidebar(sidebar, mainContentArea, sidebarToggleIcon);
+    }
+    // Theme 초기화
+    if (themeToggleBtn) { // themeToggleBtn은 <button id="theme-toggle-btn">
+        const actualThemeToggleIcon = document.getElementById('theme-toggle-icon'); // <i id="theme-toggle-icon">
+        const actualThemeToggleText = themeToggleBtn.querySelector('.sidebar-text'); // <span class="sidebar-text">
+
+        if (actualThemeToggleIcon) {
+            initTheme(actualThemeToggleIcon, actualThemeToggleText); // theme.js의 initTheme 호출
+        } else {
+            console.warn("테마 토글 아이콘 요소를 찾을 수 없습니다. (ID: theme-toggle-icon)");
+        }
+    }
 });

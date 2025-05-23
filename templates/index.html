@@ -524,7 +524,7 @@
         var supabaseAnonKey = "{{ supabase_anon_key }}";
         // var presetWorldsData = JSON.parse('{{ preset_worlds | tojson | safe }}'); // 이 줄 제거
     </script>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='main.js') }}"></script>
 
 <!-- 진행중인 모험 목록 모달 -->
 <div id="ongoing-adventures-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
