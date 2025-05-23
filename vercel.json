@@ -2,7 +2,7 @@
     "version": 2,
     "builds": [
         {
-            "src": "backend/app.py",
+            "src": "backend/main.py",
             "use": "@vercel/python",
             "config": { "maxLambdaSize": "15mb", "runtime": "python3.9" }
         },
@@ -18,7 +18,7 @@
         },
         {
             "src": "/(.*)",
-            "dest": "backend/app.py"
+            "dest": "backend/main.py"
         }
     ]
 } 

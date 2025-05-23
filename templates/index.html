@@ -294,6 +294,69 @@
             color: #6b7280;
         }
 
+        /* 추가/수정: 모바일 화면 대응 */
+        @media (max-width: 767px) {
+            /* 모바일에서 사이드바 닫혔을 때의 스타일 */
+            .sidebar.closed {
+                width: 0;
+                padding: 0;
+                border-width: 0;
+                /* visibility: hidden; /* 자식 요소를 선택적으로 표시할 수 있도록 하는 대안 */
+            }
+
+            /* 닫힌 사이드바 내부의 실제 콘텐츠 요소들 숨기기 */
+            .sidebar.closed .sidebar-logo-and-title,
+            .sidebar.closed nav,
+            .sidebar.closed .mt-auto { /* 사용자 정보 및 테마 토글 섹션 */
+                display: none;
+            }
+            .sidebar.closed .sidebar-header-area {
+                padding: 0;
+                margin: 0;
+            }
+            
+            /* 모바일에서 닫힌 사이드바의 토글 버튼은 화면 좌상단에 고정 */
+            .sidebar.closed #sidebar-toggle-btn {
+                position: fixed;
+                top: 0.75rem; 
+                left: 0.75rem; 
+                z-index: 50; 
+                background-color: #1f2937; 
+                padding: 0.5rem; /* 패딩 줄이기 (기존 p-2 -> p-1 처럼) */
+                min-height: auto; /* 기존 sidebar-item-container의 min-height 무시 */
+                /* rounded-md 등 기존 스타일 유지 */
+            }
+
+            /* 모바일에서 닫힌 사이드바의 토글 버튼 내부 아이콘 크기 줄이기 */
+            .sidebar.closed #sidebar-toggle-icon {
+                font-size: 1rem; /* fa-lg (1.333em) 보다 작게 */
+                line-height: 1; /* 아이콘이 버튼 중앙에 잘 오도록 line-height 조정 */
+            }
+
+            /* 라이트 모드일 때 모바일 닫힌 사이드바의 토글 버튼 */
+            body.light-mode .sidebar.closed #sidebar-toggle-btn {
+                background-color: #ffffff; /* 라이트모드 사이드바 배경 */
+                border: 1px solid #e5e7eb; /* 라이트모드 사이드바 테두리 */
+                color: #374151; /* 라이트모드 기본 아이콘 색상 */
+            }
+            body.light-mode .sidebar.closed #sidebar-toggle-btn:hover {
+                 background-color: #e5e7eb; /* 라이트모드 호버 배경 */
+                 color: #111827; /* 라이트모드 호버 아이콘 색상 */
+            }
+
+            /* 메인 콘텐츠는 사이드바 닫혔을 때 왼쪽 마진 0 */
+            .main-content.sidebar-closed {
+                margin-left: 0;
+            }
+
+            /* 모바일에서 사이드바 닫혔을 때, 메인 헤더의 패딩을 조정하여 버튼 옆에 텍스트가 오도록 함 */
+            .main-content.sidebar-closed header {
+                padding-top: 0.75rem;    /* 버튼의 top 값과 유사하게 맞춤 */
+                padding-bottom: 0.75rem; /* 상단과 대칭, 또는 헤더 높이 조정을 위해 */
+                padding-left: 2.75rem;   /* 버튼 너비(약 1.5rem) + 버튼의 left offset(0.75rem) + 약간의 여유(0.5rem) */
+                padding-right: 1rem;     /* 기존 p-4의 우측 패딩 유지 (명시적으로 설정) */
+            }
+        }
     </style>
 </head>
 <body class="flex h-screen font-sans leading-normal tracking-normal">

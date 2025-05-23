@@ -37,9 +37,9 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const { data, error } = await supabaseClient.auth.signInWithOAuth({
                     provider: 'google',
-                    // options: {
-                    //   redirectTo: window.location.origin // 로그인 후 현재 페이지로 돌아오도록 설정 가능 (필요 시)
-                    // }
+                    options: {
+                      redirectTo: window.location.origin 
+                    }
                 });
 
                 if (error) {
