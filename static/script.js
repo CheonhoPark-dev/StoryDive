@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const sidebar = document.getElementById('sidebar');
     const mainContentArea = document.getElementById('main-content-area');
     const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+    const sidebarToggleIcon = document.getElementById('sidebar-toggle-icon'); // 토글 버튼 내부 아이콘
 
     // "진행중인 모험" 버튼 DOM 요소 추가
     const continueAdventureBtnSidebar = document.getElementById('continue-adventure-btn-sidebar');
@@ -306,18 +307,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         await fetchAndDisplayPublicWorlds(); 
 
-        if (!currentUser && myWorldsSection) { 
-            myWorldsSection.classList.add('hidden');
-        }
-        await updateContinueAdventureButtonState();
+        // 로그인 상태와 관계없이 myWorldsSection을 초기에 숨기므로, 여기서 추가적인 myWorldsSection 제어는 불필요.
+        // updateContinueAdventureButtonState(); // 이 함수는 이제 initializeApplication 끝에서 호출
     }
 
     function showGameScreen(worldTitle = "스토리 진행 중") {
-        if (worldSelectionContainer) worldSelectionContainer.classList.add('hidden');
-        if (gameContainer) gameContainer.classList.remove('hidden');
+        if (worldSelectionContainer) worldSelectionContainer.classList.add('hidden'); // 게임 화면 시 선택 화면 전체 숨김
+        if (publicWorldsSection) publicWorldsSection.classList.add('hidden');
+        if (myWorldsSection) myWorldsSection.classList.add('hidden');
         if (createWorldFormContainer) createWorldFormContainer.classList.add('hidden');
         if (editWorldFormContainer) editWorldFormContainer.classList.add('hidden');
-
+        
+        if (gameContainer) gameContainer.classList.remove('hidden');
         if (mainContentHeader) mainContentHeader.textContent = worldTitle || "스토리 진행 중";
 
         if (submitInputButton) submitInputButton.disabled = false;
@@ -328,7 +329,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     function showCreateWorldForm() {
-        if (worldSelectionContainer) worldSelectionContainer.classList.remove('hidden');
+        if (worldSelectionContainer) worldSelectionContainer.classList.remove('hidden'); 
         if (gameContainer) gameContainer.classList.add('hidden');
         if (createWorldFormContainer) createWorldFormContainer.classList.remove('hidden');
         if (editWorldFormContainer) editWorldFormContainer.classList.add('hidden');
@@ -699,7 +700,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (editWorldTagsInput) editWorldTagsInput.value = Array.isArray(world.tags) ? world.tags.join(', ') : (world.tags || '');
         if (editWorldCoverImageUrlInput) editWorldCoverImageUrlInput.value = world.cover_image_url || '';
         
-        if (worldSelectionContainer) worldSelectionContainer.classList.remove('hidden');
+        if (worldSelectionContainer) worldSelectionContainer.classList.remove('hidden'); 
+        if (publicWorldsSection) publicWorldsSection.classList.add('hidden');
         if (myWorldsSection) myWorldsSection.classList.add('hidden');
 
         if (createWorldFormContainer) createWorldFormContainer.classList.add('hidden');
@@ -867,9 +869,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         await checkUserSession(true); 
         await updateContinueAdventureButtonState();
 
-        if (currentUser) {
+        if (currentUser || window.location.pathname === '/') {
             await showWorldSelectionScreen();
+        } else if (!currentUser && window.location.pathname !== '/login' && !window.location.pathname.startsWith('/api/')) {
+            window.location.href = '/login';
         }
+        await updateContinueAdventureButtonState();
     }
 
     // Event Listeners
@@ -1036,7 +1041,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await initializeApplication(true);
             } else if (_event === 'SIGNED_OUT') {
                 if (window.location.pathname !== '/login') {
-                    
+                    window.location.href = '/login';
                 }
                  if (mainContentHeader) mainContentHeader.textContent = "모험을 선택하세요";
             } else if (_event === 'INITIAL_SESSION') {
@@ -1045,10 +1050,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } else if (window.location.pathname !== '/login' && !window.location.pathname.startsWith('/api/')) {
                     window.location.href = '/login';
                 }
+            } else if (_event === 'USER_UPDATED') {
+                await updateUserUI();
             }
         });
     } else {
         await checkUserSession();
+        if (window.location.pathname === '/'){
+             await showWorldSelectionScreen();
+        }
+        await updateContinueAdventureButtonState();
     }
 
     async function fetchAndDisplayPublicWorlds() {
@@ -1135,9 +1146,35 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 사이드바 토글 함수
     function toggleSidebar() {
-        if (sidebar && mainContentArea) {
-            sidebar.classList.toggle('-translate-x-full');
-            mainContentArea.classList.toggle('ml-64');
+        if (sidebar && mainContentArea && sidebarToggleIcon) {
+            const isClosed = sidebar.classList.toggle('closed');
+            mainContentArea.classList.toggle('sidebar-closed', isClosed);
+            localStorage.setItem('sidebarClosed', isClosed ? 'true' : 'false');
+
+            if (isClosed) {
+                sidebarToggleIcon.classList.remove('fa-bars');
+                sidebarToggleIcon.classList.add('fa-chevron-right');
+            } else {
+                sidebarToggleIcon.classList.remove('fa-chevron-right');
+                sidebarToggleIcon.classList.add('fa-bars');
+            }
+        }
+    }
+
+    // 페이지 로드 시 사이드바 상태 복원 함수
+    function applyInitialSidebarState() {
+        if (sidebar && mainContentArea && sidebarToggleIcon) {
+            const sidebarIsClosed = localStorage.getItem('sidebarClosed') === 'true';
+            sidebar.classList.toggle('closed', sidebarIsClosed);
+            mainContentArea.classList.toggle('sidebar-closed', sidebarIsClosed);
+
+            if (sidebarIsClosed) {
+                sidebarToggleIcon.classList.remove('fa-bars');
+                sidebarToggleIcon.classList.add('fa-chevron-right');
+            } else {
+                sidebarToggleIcon.classList.remove('fa-chevron-right');
+                sidebarToggleIcon.classList.add('fa-bars');
+            }
         }
     }
 
@@ -1147,7 +1184,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // 페이지 로드 시 마지막으로 한번 더 버튼 상태 업데이트
-    updateContinueAdventureButtonState();
+    await updateContinueAdventureButtonState();
+    applyInitialSidebarState(); // 페이지 로드 시 사이드바 상태 적용
 
     document.addEventListener('keydown', (event) => {
         if (gameContainer && !gameContainer.classList.contains('hidden') && !isLoading) {

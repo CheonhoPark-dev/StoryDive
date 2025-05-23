@@ -46,12 +46,84 @@
         /* 사이드바 스타일 */
         .sidebar {
             background-color: #1f2937; /* 사이드바 배경색 */
+            transition: width 0.3s ease-in-out; /* 너비 변경 시 부드러운 전환 */
+        }
+
+        .sidebar.closed {
+            width: 4.5rem; /* 72px, 아이콘만 보이도록 너비 축소 */
+        }
+        .sidebar.closed .sidebar-text {
+            display: none; /* 텍스트 숨김 */
+        }
+        .sidebar.closed .sidebar-user-email {
+            display: none; /* 사용자 이메일 숨김 */
+        }
+        .sidebar.closed .sidebar-logo-text {
+            display: none; /* 텍스트 숨김 */
+        }
+        .sidebar.closed .sidebar-logo-text-group { /* 새 로고 텍스트 그룹 숨김 */
+            display: none;
+        }
+        .sidebar.closed .sidebar-item-container {
+            justify-content: center; /* 아이콘 중앙 정렬 */
+            min-height: 3.5rem; /* 닫혔을 때 각 아이템의 최소 높이 확보 (예시 값) */
+            display: flex; /* 내부 아이콘 수직 중앙 정렬 위해 */
+            align-items: center; /* 내부 아이콘 수직 중앙 정렬 */
+        }
+        .sidebar:not(.closed) .sidebar-logo-icon {
+            /* margin-right: 0.5rem; */ /* 열렸을 때 로고 아이콘과 텍스트 사이 간격 - .sidebar-logo-and-title 내부에서 처리 */
+        }
+
+        .sidebar-header-area {
+            display: flex;
+            align-items: center;
+            padding-bottom: 1rem; /* 로고/타이틀과 네비게이션 메뉴 사이 간격 */
+            /* border-bottom: 1px solid #374151; mb-5 대신 사용 가능 */
+        }
+
+        .sidebar.closed .sidebar-header-area {
+            flex-direction: column;
+            padding-bottom: 0.5rem;
+        }
+
+        #sidebar-toggle-btn {
+            /* 기본 스타일 유지 */
+        }
+
+        .sidebar:not(.closed) #sidebar-toggle-btn {
+            margin-right: 0.5rem; /* 열렸을 때 토글 버튼과 로고/타이틀 사이 간격 (0.75rem -> 0.5rem으로 수정) */
+        }
+
+        .sidebar.closed #sidebar-toggle-btn {
+            margin-bottom: 0; /* 닫혔을 때 토글 버튼과 로고 아이콘 사이 간격 (min-height로 대체) */
+        }
+
+        .sidebar-logo-and-title {
+            display: flex;
+            align-items: center;
+        }
+        
+        .sidebar-logo-and-title .sidebar-logo-icon {
+            margin-right: 0.5rem; /* 로고 아이콘과 텍스트 그룹 사이 간격 (유지) */
+        }
+
+        .sidebar.closed .sidebar-logo-and-title .sidebar-logo-icon {
+            margin-right: 0; /* 닫혔을 때는 아이콘만 있으므로 오른쪽 마진 제거 */
+            /* margin-bottom 등의 하단 마진은 sidebar-item-container의 높이와 flex 정렬로 관리 */
         }
 
         /* 메인 콘텐츠 영역 스타일 */
         .main-content {
             background-color: #111827; /* 메인 콘텐츠 배경색 */
+            transition: margin-left 0.3s ease-in-out; /* 마진 변경 시 부드러운 전환 */
         }
+        .main-content.sidebar-closed {
+            margin-left: 4.5rem; /* 사이드바 닫혔을 때 마진 */
+        }
+        .main-content:not(.sidebar-closed) {
+            margin-left: 16rem; /* 256px, 사이드바 열렸을 때 마진 (기존 w-64) */
+        }
+
         .content-card {
             background-color: #1f2937; /* 콘텐츠 카드 배경색 */
             border: 1px solid #374151; /* 카드 테두리 */
@@ -103,58 +175,59 @@
 <body class="flex h-screen font-sans leading-normal tracking-normal">
 
     <!-- 왼쪽 사이드바 -->
-    <aside id="sidebar" class="sidebar w-64 p-6 flex flex-col fixed top-0 left-0 h-full z-20 transition-transform duration-300 ease-in-out">
-        <div class="mb-6">
-            <div class="text-3xl font-bold text-white mb-10 text-center">
-                <i class="fas fa-feather-alt mr-2"></i> 스토리 다이브
-            </div>
-            <nav class="space-y-2">
-                <button id="home-btn" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-base font-medium transition">
-                    <i class="fas fa-home fa-fw"></i>
-                    <span>홈 (세계관 선택)</span>
-                </button>
-                <button id="show-create-world-form-btn-sidebar" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-base font-medium transition">
-                    <i class="fas fa-plus-circle fa-fw"></i>
-                    <span>새 세계관 만들기</span>
-                </button>
-                <button id="show-my-worlds-btn-sidebar" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-base font-medium transition">
-                    <i class="fas fa-list fa-fw"></i>
-                    <span>내 세계관 목록</span>
-                </button>
-                <button id="continue-adventure-btn-sidebar" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-base font-medium transition hidden">
-                    <i class="fas fa-play-circle fa-fw"></i>
-                    <span>진행중인 모험</span>
-                </button>
-                <!-- 필요에 따라 다른 네비게이션 링크 추가 -->
-            </nav>
-        </div>
-        <div id="user-info-sidebar" class="hidden mt-auto">
-            <div class="border-t border-gray-700 pt-4">
-                 <div class="flex items-center mb-2">
-                    <i class="fas fa-user-circle fa-2x text-gray-400 mr-3"></i>
-                    <div>
-                        <span id="user-email-display-sidebar" class="block text-sm font-medium text-gray-300"></span>
-                        <!-- <span class="text-xs text-gray-500">Pro Plan</span> -->
-                    </div>
+    <aside id="sidebar" class="sidebar w-64 p-4 flex flex-col fixed top-0 left-0 h-full z-20">
+        <!-- 상단 헤더 영역: 토글 버튼 + 로고/타이틀 -->
+        <div class="sidebar-header-area mb-1">
+            <button id="sidebar-toggle-btn" class="text-gray-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 p-2 rounded-md sidebar-item-container">
+                <i id="sidebar-toggle-icon" class="fas fa-bars fa-lg"></i>
+            </button>
+            <div class="sidebar-logo-and-title sidebar-item-container">
+                <i class="fas fa-feather-alt text-2xl text-indigo-400 sidebar-logo-icon"></i>
+                <div class="sidebar-logo-text-group">
+                    <span class="text-xl font-bold text-white">스토리</span><span class="text-xl font-bold text-indigo-400">다이브</span>
                 </div>
-                <button id="logout-btn-sidebar" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition">
-                    <i class="fas fa-sign-out-alt fa-fw"></i>
-                    <span>로그아웃</span>
-                </button>
             </div>
+        </div>
+
+        <nav class="space-y-2 flex-grow">
+            <button id="home-btn" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-3 rounded-md text-base font-medium transition sidebar-item-container">
+                <i class="fas fa-home fa-fw fa-lg"></i>
+                <span class="sidebar-text">홈 (세계관 선택)</span>
+            </button>
+            <button id="show-create-world-form-btn-sidebar" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-3 rounded-md text-base font-medium transition sidebar-item-container">
+                <i class="fas fa-plus-circle fa-fw fa-lg"></i>
+                <span class="sidebar-text">새 세계관 만들기</span>
+            </button>
+            <button id="show-my-worlds-btn-sidebar" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-3 rounded-md text-base font-medium transition sidebar-item-container">
+                <i class="fas fa-list fa-fw fa-lg"></i>
+                <span class="sidebar-text">내 세계관 목록</span>
+            </button>
+            <button id="continue-adventure-btn-sidebar" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-3 rounded-md text-base font-medium transition sidebar-item-container hidden">
+                <i class="fas fa-play-circle fa-fw fa-lg"></i>
+                <span class="sidebar-text">진행중인 모험</span>
+            </button>
+            <!-- 필요에 따라 다른 네비게이션 링크 추가 -->
+        </nav>
+        <div id="user-info-sidebar" class="hidden mt-auto pt-4 border-t border-gray-700">
+            <div class="flex items-center mb-3 px-2 py-1 sidebar-item-container">
+                <i class="fas fa-user-circle fa-2x text-gray-400"></i>
+                <div class="sidebar-user-email ml-3">
+                    <span id="user-email-display-sidebar" class="block text-sm font-medium text-gray-300"></span>
+                </div>
+            </div>
+            <button id="logout-btn-sidebar" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-3 rounded-md text-sm font-medium transition sidebar-item-container">
+                <i class="fas fa-sign-out-alt fa-fw fa-lg"></i>
+                <span class="sidebar-text">로그아웃</span>
+            </button>
         </div>
     </aside>
 
     <!-- 메인 콘텐츠 영역 (사이드바 너비만큼 왼쪽 마진 필요) -->
-    <div id="main-content-area" class="main-content flex-1 flex flex-col ml-64 transition-all duration-300 ease-in-out">
+    <div id="main-content-area" class="main-content flex-1 flex flex-col ml-64">
         <!-- 상단 바 (선택 사항, 필요시 사용) -->
         <header class="bg-gray-800 shadow-md p-4 sticky top-0 z-10 flex items-center">
-            <!-- 사이드바 토글 버튼 -->
-            <button id="sidebar-toggle-btn" class="text-gray-300 hover:text-white focus:outline-none mr-4">
-                <i class="fas fa-bars fa-lg"></i>
-            </button>
             <div class="container mx-auto flex justify-between items-center">
-                <h2 id="main-content-header" class="text-xl font-semibold text-header">모험을 선택하세요</h2>
+                <h2 id="main-content-header" class="text-xl font-semibold text-header">공개 세계관 탐색</h2>
                 <!-- 상단 바에 다른 요소 추가 가능 -->
             </div>
     </header>
@@ -162,7 +235,7 @@
         <!-- 실제 콘텐츠 -->
         <main class="flex-1 p-6 overflow-y-auto">
             <!-- World Selection Container -->
-            <div id="world-selection-container" class="hidden">
+            <div id="world-selection-container" class="">
                 <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                     <!-- Preset Worlds Section Removed -->
 
@@ -176,8 +249,8 @@
                         </div>
                     </div>
 
-                    <!-- 내가 만든 세계관 목록 표시 영역 -->
-                    <div id="my-worlds-section" class="content-card p-6 rounded-xl md:col-span-2 lg:col-span-3">
+                    <!-- 내가 만든 세계관 목록 표시 영역 (기본 숨김) -->
+                    <div id="my-worlds-section" class="hidden content-card p-6 rounded-xl md:col-span-2 lg:col-span-3">
                         <h3 class="text-xl font-semibold mb-4 text-header">내가 만든 세계관:</h3>
                         <div id="my-worlds-feedback" class="text-sm mb-2"></div>
                         <div id="my-worlds-list" class="space-y-3">
@@ -306,9 +379,9 @@
                         <button id="submit-input-btn" class="btn-primary text-white px-6 py-3 rounded-lg font-medium transition flex items-center justify-center">
                             <i class="fas fa-paper-plane mr-2"></i>입력
                         </button>
-    </div>
-    </div>
-    </div>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -331,10 +404,10 @@
         </div>
         <div id="ongoing-adventures-list-container" class="overflow-y-auto space-y-3 pr-2">
             <!-- 모험 목록이 여기에 동적으로 추가됩니다 -->
-        </div>
+    </div>
         <p id="no-ongoing-adventures-msg" class="text-gray-400 text-center py-4 hidden">진행중인 모험이 없습니다.</p>
     </div>
-</div>
+    </div>
 
 </body>
 </html> 
