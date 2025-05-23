@@ -170,6 +170,130 @@
             color: #e5e7eb; /* 밝은 회색 (본문용) */
         }
 
+        /* --- Light Mode Styles --- */
+        body.light-mode {
+            background-color: #f3f4f6; /* gray-100 */
+            color: #1f2937; /* gray-800 */
+        }
+
+        body.light-mode .sidebar {
+            background-color: #ffffff; /* white */
+            border-right: 1px solid #e5e7eb; /* gray-200 */
+        }
+
+        body.light-mode .sidebar .sidebar-logo-text-group span:first-child { /* "스토리" 텍스트 */
+            color: #111827; /* gray-900 */
+        }
+        body.light-mode .sidebar .sidebar-logo-text-group span:last-child { /* "다이브" 텍스트 */
+            color: #4f46e5; /* indigo-600 (유지 또는 약간 밝게) */
+        }
+        body.light-mode .sidebar .sidebar-logo-icon { /* 깃털 아이콘 */
+            color: #4f46e5; /* indigo-600 (유지) */
+        }
+
+        body.light-mode .sidebar .text-gray-300 { /* 사이드바 내 기본 텍스트 및 아이콘 색상 */
+            color: #374151; /* gray-700 */
+        }
+        body.light-mode .sidebar .hover\:bg-gray-700:hover {
+            background-color: #e5e7eb; /* gray-200 */
+        }
+        body.light-mode .sidebar .hover\:text-white:hover {
+            color: #111827; /* gray-900 */
+        }
+        body.light-mode .sidebar .border-gray-700 { /* 구분선 */
+            border-color: #e5e7eb; /* gray-200 */
+        }
+        body.light-mode .sidebar #user-email-display-sidebar {
+            color: #374151; /* gray-700 */
+        }
+        body.light-mode .sidebar .fa-user-circle {
+            color: #6b7280; /* gray-500 */
+        }
+
+
+        body.light-mode .main-content {
+            background-color: #f3f4f6; /* gray-100 */
+        }
+
+        body.light-mode .main-content header { /* 상단 바 */
+            background-color: #ffffff; /* white */
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+        }
+        body.light-mode .main-content header #main-content-header.text-header {
+            color: #111827; /* gray-900 */
+        }
+        body.light-mode .main-content header #sidebar-toggle-btn.text-gray-300 { /* 이 ID는 사이드바로 이동했으므로, 실제 토글버튼 ID로 확인필요 */
+             color: #374151; /* gray-700 */
+        }
+        /* 사이드바 내부 토글 버튼 라이트 모드 스타일 */
+        body.light-mode aside#sidebar #sidebar-toggle-btn.text-gray-300 {
+            color: #374151; /* gray-700 */
+        }
+        body.light-mode aside#sidebar #sidebar-toggle-btn.hover\:text-white:hover {
+            color: #111827; /* gray-900 */
+        }
+
+
+        body.light-mode .content-card {
+            background-color: #ffffff; /* white */
+            border-color: #e5e7eb; /* gray-200 */
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+        }
+
+        body.light-mode .text-header { /* 콘텐츠 카드 내 h3 등 */
+            color: #111827; /* gray-900 */
+        }
+        body.light-mode .text-subheader {
+            color: #4b5563; /* gray-600 */
+        }
+        body.light-mode .text-content { /* 로딩 메시지 등 */
+            color: #374151; /* gray-700 */
+        }
+        body.light-mode p.text-gray-400 { /* "아직 생성한 세계관이 없습니다" 등 */
+            color: #6b7280; /* gray-500 */
+        }
+
+
+        body.light-mode .input-field {
+            background-color: #f9fafb; /* gray-50 */
+            border-color: #d1d5db; /* gray-300 */
+            color: #111827; /* gray-900 */
+        }
+        body.light-mode .input-field::placeholder {
+            color: #9ca3af; /* gray-400 */
+        }
+
+        /* 버튼 색상은 라이트모드에서도 일단 유지. 필요시 조정 */
+        /* body.light-mode .btn-primary ... */
+
+        body.light-mode #ongoing-adventures-modal .bg-gray-800 { /* 모달 배경 */
+            background-color: #ffffff;
+        }
+        body.light-mode #ongoing-adventures-modal .text-white { /* 모달 타이틀 */
+            color: #111827;
+        }
+        body.light-mode #ongoing-adventures-modal .text-gray-400 { /* 모달 닫기 버튼, "없음" 메시지 */
+            color: #6b7280;
+        }
+        body.light-mode #ongoing-adventures-modal .hover\:text-white:hover {
+             color: #111827;
+        }
+        body.light-mode #ongoing-adventures-modal .bg-gray-700 { /* 모험 카드 배경 */
+            background-color: #f3f4f6;
+        }
+        body.light-mode #ongoing-adventures-modal .hover\:bg-gray-600:hover {
+            background-color: #e5e7eb;
+        }
+        body.light-mode #ongoing-adventures-modal .text-indigo-400 { /* 모험 카드 제목 */
+            color: #4f46e5; 
+        }
+        body.light-mode #ongoing-adventures-modal .text-gray-300 { /* 모험 카드 요약 */
+            color: #374151;
+        }
+        body.light-mode #ongoing-adventures-modal .text-gray-500 { /* 모험 카드 마지막 플레이 */
+            color: #6b7280;
+        }
+
     </style>
 </head>
 <body class="flex h-screen font-sans leading-normal tracking-normal">
@@ -208,17 +332,26 @@
             </button>
             <!-- 필요에 따라 다른 네비게이션 링크 추가 -->
         </nav>
-        <div id="user-info-sidebar" class="hidden mt-auto pt-4 border-t border-gray-700">
-            <div class="flex items-center mb-3 px-2 py-1 sidebar-item-container">
-                <i class="fas fa-user-circle fa-2x text-gray-400"></i>
-                <div class="sidebar-user-email ml-3">
-                    <span id="user-email-display-sidebar" class="block text-sm font-medium text-gray-300"></span>
-                </div>
-            </div>
-            <button id="logout-btn-sidebar" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-3 rounded-md text-sm font-medium transition sidebar-item-container">
-                <i class="fas fa-sign-out-alt fa-fw fa-lg"></i>
-                <span class="sidebar-text">로그아웃</span>
+        <!-- 테마 토글 및 사용자 정보 섹션 컨테이너 -->
+        <div class="mt-auto pt-4 border-t border-gray-700">
+            <!-- 테마 토글 버튼 -->
+            <button id="theme-toggle-btn" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-3 rounded-md text-base font-medium transition sidebar-item-container mb-2">
+                <i id="theme-toggle-icon" class="fas fa-sun fa-fw fa-lg"></i>
+                <span class="sidebar-text">라이트 모드</span>
             </button>
+
+            <div id="user-info-sidebar" class="hidden"> <!-- 사용자 정보는 테마 토글 아래 -->
+                 <div class="flex items-center mb-3 px-2 py-1 sidebar-item-container">
+                    <i class="fas fa-user-circle fa-2x text-gray-400"></i>
+                    <div class="sidebar-user-email ml-3">
+                        <span id="user-email-display-sidebar" class="block text-sm font-medium text-gray-300"></span>
+                    </div>
+                </div>
+                <button id="logout-btn-sidebar" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-3 rounded-md text-sm font-medium transition sidebar-item-container">
+                    <i class="fas fa-sign-out-alt fa-fw fa-lg"></i>
+                    <span class="sidebar-text">로그아웃</span>
+                </button>
+            </div>
         </div>
     </aside>
 

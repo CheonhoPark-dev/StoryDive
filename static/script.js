@@ -1178,14 +1178,57 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // --- 테마 토글 로직 ---
+    function applyTheme(theme) {
+        if (theme === 'light') {
+            document.body.classList.add('light-mode');
+            if (themeToggleIcon) {
+                themeToggleIcon.classList.remove('fa-sun');
+                themeToggleIcon.classList.add('fa-moon');
+            }
+            if (themeToggleText) themeToggleText.textContent = '다크 모드';
+        } else {
+            document.body.classList.remove('light-mode');
+            if (themeToggleIcon) {
+                themeToggleIcon.classList.remove('fa-moon');
+                themeToggleIcon.classList.add('fa-sun');
+            }
+            if (themeToggleText) themeToggleText.textContent = '라이트 모드';
+        }
+        localStorage.setItem('theme', theme);
+    }
+
+    function toggleTheme() {
+        const currentThemeIsLight = document.body.classList.contains('light-mode');
+        applyTheme(currentThemeIsLight ? 'dark' : 'light');
+    }
+
+    function applyInitialTheme() {
+        const savedTheme = localStorage.getItem('theme');
+        // 시스템 설정 감지 (선택적)
+        // const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (savedTheme) {
+            applyTheme(savedTheme);
+        } else {
+            // 기본은 다크 모드로 설정 (또는 prefersDark ? 'dark' : 'light' 사용 가능)
+            applyTheme('dark'); 
+        }
+    }
+    // --- 테마 토글 로직 끝 ---
+
     // 이벤트 리스너
     if (sidebarToggleBtn) {
         sidebarToggleBtn.addEventListener('click', toggleSidebar);
     }
 
-    // 페이지 로드 시 마지막으로 한번 더 버튼 상태 업데이트
-    await updateContinueAdventureButtonState();
-    applyInitialSidebarState(); // 페이지 로드 시 사이드바 상태 적용
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', toggleTheme);
+    }
+
+    // 페이지 로드 시 마지막으로 한번 더 버튼 상태 업데이트 (이제 initializeApplication에서 처리)
+    // await updateContinueAdventureButtonState(); 
+    applyInitialSidebarState(); // 페이지 로드 시 사이드바 초기 상태 적용
+    applyInitialTheme(); // 페이지 로드 시 테마 초기 상태 적용
 
     document.addEventListener('keydown', (event) => {
         if (gameContainer && !gameContainer.classList.contains('hidden') && !isLoading) {
