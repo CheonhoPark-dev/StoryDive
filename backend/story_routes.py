@@ -5,7 +5,7 @@ from flask import Blueprint, request, jsonify
 
 # Absolute imports from the 'backend' package perspective
 from backend.auth_utils import get_user_from_request
-from backend.database import get_db_client, save_story_to_db, load_story_from_db, supabase_client as db_supabase_client
+from backend.database import get_db_client, save_story_to_db, load_story_from_db
 from backend.gemini_utils import call_gemini_api, PRESET_WORLDS, DEFAULT_PROMPT_TEMPLATE
 from backend.config import GEMINI_API_KEY
 
@@ -13,7 +13,7 @@ story_bp = Blueprint('story_bp', __name__, url_prefix='/api')
 
 @story_bp.route('/action', methods=['POST'])
 def handle_action():
-    current_user = get_user_from_request(request, db_supabase_client)
+    current_user = get_user_from_request(request)
     if not current_user:
         return jsonify({"error": "인증되지 않은 사용자입니다."}), 401
     user_id_from_token = str(current_user.id)

@@ -121,6 +121,10 @@
                     <i class="fas fa-list fa-fw"></i>
                     <span>내 세계관 목록</span>
                 </button>
+                <button id="continue-adventure-btn-sidebar" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-base font-medium transition hidden">
+                    <i class="fas fa-play-circle fa-fw"></i>
+                    <span>진행중인 모험</span>
+                </button>
                 <!-- 필요에 따라 다른 네비게이션 링크 추가 -->
             </nav>
         </div>
@@ -153,7 +157,7 @@
                 <h2 id="main-content-header" class="text-xl font-semibold text-header">모험을 선택하세요</h2>
                 <!-- 상단 바에 다른 요소 추가 가능 -->
             </div>
-        </header>
+    </header>
 
         <!-- 실제 콘텐츠 -->
         <main class="flex-1 p-6 overflow-y-auto">
@@ -302,9 +306,9 @@
                         <button id="submit-input-btn" class="btn-primary text-white px-6 py-3 rounded-lg font-medium transition flex items-center justify-center">
                             <i class="fas fa-paper-plane mr-2"></i>입력
                         </button>
-                    </div>
-                </div>
-            </div>
+    </div>
+    </div>
+    </div>
         </main>
     </div>
 
@@ -315,5 +319,22 @@
         // var presetWorldsData = JSON.parse('{{ preset_worlds | tojson | safe }}'); // 이 줄 제거
     </script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+<!-- 진행중인 모험 목록 모달 -->
+<div id="ongoing-adventures-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-2xl font-semibold text-white">진행중인 모험</h3>
+            <button id="close-ongoing-adventures-modal-btn" class="text-gray-400 hover:text-white text-2xl">
+                &times;
+            </button>
+        </div>
+        <div id="ongoing-adventures-list-container" class="overflow-y-auto space-y-3 pr-2">
+            <!-- 모험 목록이 여기에 동적으로 추가됩니다 -->
+        </div>
+        <p id="no-ongoing-adventures-msg" class="text-gray-400 text-center py-4 hidden">진행중인 모험이 없습니다.</p>
+    </div>
+</div>
+
 </body>
 </html> 

@@ -64,4 +64,29 @@ header h1 {
 
 #input-container button:hover {
     background-color: #1e7e34;
+}
+
+/* 모바일 환경을 위한 미디어 쿼리 추가 */
+@media (max-width: 600px) {
+    #choices-container button {
+        padding: 15px 10px; /* 세로 패딩 증가 */
+        font-size: 1rem;    /* 폰트 크기 조정 (필요시) */
+        margin-bottom: 12px; /* 버튼 간 간격 조정 */
+    }
+
+    #input-container input[type="text"] {
+        font-size: 1rem; /* 입력 필드 폰트 크기 조정 */
+    }
+
+    #input-container button {
+        font-size: 1rem; /* 전송 버튼 폰트 크기 조정 */
+    }
+
+    header h1 {
+        font-size: 1.5rem; /* 헤더 제목 폰트 크기 조정 */
+    }
+
+    #story-container {
+        padding: 15px; /* 스토리 컨테이너 패딩 조정 */
+    }
 } 

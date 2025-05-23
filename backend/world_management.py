@@ -6,13 +6,13 @@ import traceback # For detailed error logging
 
 # Absolute imports from the 'backend' package perspective
 from backend.auth_utils import get_user_from_request
-from backend.database import get_db_client, supabase_client as db_supabase_client
+from backend.database import get_db_client
 
 worlds_bp = Blueprint('worlds_bp', __name__, url_prefix='/api/worlds')
 
 @worlds_bp.route('', methods=['POST'])
 def create_world():
-    current_user = get_user_from_request(request, db_supabase_client)
+    current_user = get_user_from_request(request)
     if not current_user:
         return jsonify({"error": "인증되지 않은 사용자입니다."}), 401
 
@@ -127,7 +127,7 @@ def get_public_worlds():
 
 @worlds_bp.route('/mine', methods=['GET'])
 def get_my_worlds():
-    current_user = get_user_from_request(request, db_supabase_client)
+    current_user = get_user_from_request(request)
     if not current_user:
         return jsonify({"error": "인증되지 않은 사용자입니다."}), 401
 
@@ -158,7 +158,7 @@ def get_my_worlds():
 
 @worlds_bp.route('/<uuid:world_id>', methods=['PUT'])
 def update_world(world_id):
-    current_user = get_user_from_request(request, db_supabase_client)
+    current_user = get_user_from_request(request)
     if not current_user:
         return jsonify({"error": "인증되지 않은 사용자입니다."}), 401
 
@@ -214,7 +214,7 @@ def update_world(world_id):
 
 @worlds_bp.route('/<uuid:world_id>', methods=['DELETE'])
 def delete_world(world_id):
-    current_user = get_user_from_request(request, db_supabase_client)
+    current_user = get_user_from_request(request)
     if not current_user:
         return jsonify({"error": "인증되지 않은 사용자입니다."}), 401
 

@@ -10,6 +10,8 @@ supabase_client: Client | None = None
 def init_supabase_client():
     """Initializes the Supabase client."""
     global supabase_client
+    print(f"[DB_DEBUG] init_supabase_client called. Current supabase_client: {'Not None' if supabase_client else 'None'}")
+    print(f"[DB_DEBUG] SUPABASE_URL: {SUPABASE_URL}, SUPABASE_KEY: {'Exists' if SUPABASE_KEY else 'Missing!'}")
     if SUPABASE_URL and SUPABASE_KEY:
         try:
             supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -20,12 +22,18 @@ def init_supabase_client():
     else:
         print("경고: SUPABASE_URL 또는 SUPABASE_KEY가 설정되지 않아 Supabase 클라이언트가 초기화되지 않았습니다 (database.py).")
         supabase_client = None
+    print(f"[DB_DEBUG] init_supabase_client finished. supabase_client is now: {'Not None' if supabase_client else 'None'}")
 
 # 앱 시작 시 클라이언트 초기화
-init_supabase_client()
+# init_supabase_client() # 모듈 로드 시 자동 초기화 대신 get_db_client 내에서 필요시 초기화하도록 변경
 
 def get_db_client() -> Client | None:
-    """Returns the initialized Supabase client."""
+    """Returns the initialized Supabase client, attempting to initialize if it's None."""
+    global supabase_client
+    print(f"[DB_DEBUG] get_db_client called. Current supabase_client: {'Not None' if supabase_client else 'None'}")
+    if supabase_client is None:
+        print("Supabase client is None, attempting to re-initialize (get_db_client).")
+        init_supabase_client() # 여기서 다시 초기화 시도
     return supabase_client
 
 def load_story_from_db(session_id: str, user_id: str) -> dict | None:

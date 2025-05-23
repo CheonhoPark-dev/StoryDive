@@ -11,6 +11,7 @@ from .gemini_utils import PRESET_WORLDS, DEFAULT_PROMPT_TEMPLATE # Gemini API �
 # Blueprint 임포트
 from .story_routes import story_bp
 from .world_management import worlds_bp
+from .adventure_routes import adventure_bp # 새 블루프린트 임포트
 
 def create_app():
     print("--- create_app 함수 호출됨 (backend/__init__.py) ---")
@@ -53,6 +54,7 @@ def create_app():
     # Blueprint 등록
     app.register_blueprint(story_bp)
     app.register_blueprint(worlds_bp)
+    app.register_blueprint(adventure_bp) # 새 블루프린트 등록
 
     @app.route('/')
     def home():
