@@ -6,6 +6,7 @@
     <title>스토리 다이브 - AI 인터랙티브 스토리텔링</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
         
@@ -67,35 +68,39 @@
         */
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
-    <!-- Header -->
-    <header class="bg-indigo-600 text-white shadow-lg">
-        <div class="container mx-auto px-4 py-6">
-            <div class="flex justify-between items-center">
-                <div class="flex items-center space-x-3">
-                    <i class="fas fa-book-open text-2xl"></i>
-                    <h1 class="text-2xl md:text-3xl font-bold">스토리 다이브</h1>
-                </div>
-                <button id="new-adventure-btn" class="bg-white text-indigo-600 px-4 py-2 rounded-lg font-medium hover:bg-indigo-50 transition">
-                    <i class="fas fa-home mr-2"></i>처음으로
-                </button>
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
+    <header class="bg-indigo-600 p-4 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-white"><i class="fas fa-feather-alt mr-2"></i> 스토리 다이브</h1>
+            <div id="user-info-display" class="hidden text-white flex items-center">
+                <span id="user-email-display" class="mr-4"></span>
+                <!-- 로그인 버튼은 login.html로 이동되었으므로 여기서는 제거 -->
+                <!-- <button id="login-btn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg mr-2"> <i class="fab fa-google mr-2"></i> 로그인</button> -->
+                <button id="logout-btn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"><i class="fas fa-sign-out-alt mr-2"></i> 로그아웃</button>
             </div>
-            <p class="mt-2 opacity-90">AI가 만들어주는 인터랙티브 스토리텔링</p>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="flex-grow container mx-auto px-4 py-8">
-        <!-- World Selection Container -->
-        <div id="world-selection-container">
+    <main class="container mx-auto p-4 mt-6">
+        <!-- 로그인 요구 메시지는 이미 주석 처리됨 -->
+
+        <!-- 로딩 인디케이터 (이제 script.js에서 story-text 내부에 직접 생성하므로 이 DIV는 제거) -->
+        <!-- 
+        <div id="loading-indicator" style="display: none;" class="text-center py-10">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+            <p class="text-lg text-gray-600 mt-4">처리 중...</p>
+        </div>
+        -->
+
+        <!-- World Selection Container (기본적으로 숨김, JS가 표시/숨김 처리) -->
+        <div id="world-selection-container" class="hidden">
             <h2 class="text-2xl font-semibold mb-6 text-center text-indigo-700">새로운 모험 시작하기</h2>
-            
             <div class="grid md:grid-cols-2 gap-8">
                 <!-- Preset Worlds -->
                 <div class="bg-white p-6 rounded-xl shadow-md">
                     <h3 class="text-xl font-semibold mb-4 text-gray-700">추천 세계관 선택:</h3>
                     <div id="preset-worlds-buttons" class="space-y-3">
-                        <!-- Preset world buttons will be injected here by JavaScript -->
+                        <!-- JavaScript에 의해 동적으로 버튼 추가됨 (또는 Flask 템플릿으로 직접 렌더링) -->
                         {% if preset_worlds %}
                             {% for key, title in preset_worlds.items() %}
                                 <button data-world-key="{{ key }}" class="w-full preset-world-btn bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium transition">
@@ -108,7 +113,74 @@
                     </div>
                 </div>
 
-                <!-- Custom World Input -->
+                <!-- 내가 만든 세계관 목록 표시 영역 -->
+                <div class="bg-white p-6 rounded-xl shadow-md md:col-span-2 mb-8">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-700">내가 만든 세계관:</h3>
+                    <div id="my-worlds-list" class="space-y-3">
+                        <!-- JavaScript에 의해 동적으로 나의 세계관 목록이 여기에 추가됩니다. -->
+                        <p id="my-worlds-loading-msg" class="text-gray-500">내 세계관 목록을 불러오는 중...</p>
+                    </div>
+                </div>
+
+                <!-- "내 세계관 만들기 (저장형)" 버튼 추가 -->
+                <div class="bg-white p-6 rounded-xl shadow-md md:col-span-2 mb-8">
+                    <button id="show-create-world-form-btn" class="w-full bg-teal-500 hover:bg-teal-600 text-white px-6 py-3 rounded-lg font-medium transition flex items-center justify-center">
+                        <i class="fas fa-plus-circle mr-2"></i>내 세계관 만들고 저장하기
+                    </button>
+                </div>
+
+                <!-- 저장형 세계관 생성 폼 (기본 숨김) -->
+                <div id="create-world-form-container" class="hidden md:col-span-2 bg-white p-8 rounded-xl shadow-lg mb-8">
+                    <h3 class="text-2xl font-semibold mb-6 text-gray-800 text-center">새로운 세계관 정보 입력</h3>
+                    <form id="create-world-form" class="space-y-6">
+                        <div>
+                            <label for="world-title" class="block text-sm font-medium text-gray-700 mb-1">세계관 제목 <span class="text-red-500">*</span></label>
+                            <input type="text" id="world-title" name="title" required
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                                   placeholder="예: 마법 고양이들의 비밀 학교">
+                        </div>
+                        <div>
+                            <label for="world-setting" class="block text-sm font-medium text-gray-700 mb-1">세계관 상세 설정 <span class="text-red-500">*</span></label>
+                            <textarea id="world-setting" name="setting" rows="6" required
+                                      class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                                      placeholder="이 세계관의 배경, 주요 규칙, 분위기 등을 자세히 설명해주세요..."></textarea>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="world-is-public" name="is_public"
+                                   class="h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 mr-2">
+                            <label for="world-is-public" class="text-sm font-medium text-gray-700">다른 사용자에게 공개하기</label>
+                        </div>
+                        <div>
+                            <label for="world-genre" class="block text-sm font-medium text-gray-700 mb-1">장르</label>
+                            <input type="text" id="world-genre" name="genre"
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                                   placeholder="예: 판타지, SF, 미스터리 (선택 사항)">
+                        </div>
+                        <div>
+                            <label for="world-tags" class="block text-sm font-medium text-gray-700 mb-1">태그 (쉼표로 구분)</label>
+                            <input type="text" id="world-tags" name="tags"
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                                   placeholder="예: 마법, 학원물, 동물, 비밀 (선택 사항)">
+                        </div>
+                        <div>
+                            <label for="world-cover-image-url" class="block text-sm font-medium text-gray-700 mb-1">커버 이미지 URL</label>
+                            <input type="url" id="world-cover-image-url" name="cover_image_url"
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                                   placeholder="세계관을 나타내는 이미지 주소 (선택 사항)">
+                        </div>
+                        <div class="flex justify-end space-x-3">
+                            <button type="button" id="cancel-create-world-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-3 rounded-lg font-medium transition">
+                                취소
+                            </button>
+                            <button type="submit" id="submit-create-world-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition flex items-center justify-center">
+                                <i class="fas fa-save mr-2"></i>세계관 저장하기
+                            </button>
+                        </div>
+                    </form>
+                    <div id="create-world-feedback" class="mt-4 text-sm"></div>
+                </div>
+
+                <!-- Custom World Input (기존 즉석 세계관 입력란) -->
                 <div class="bg-white p-6 rounded-xl shadow-md">
                     <h3 class="text-xl font-semibold mb-4 text-gray-700">나만의 세계관 만들기:</h3>
                     <textarea id="custom-world-input" rows="8" 
@@ -119,19 +191,24 @@
                     </button>
                 </div>
             </div>
+             <div class="mt-8 text-center">
+                <button id="new-adventure-btn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    <i class="fas fa-home mr-2"></i>처음으로 (세계관 선택으로 돌아가기)
+                </button>
+            </div>
         </div>
 
-        <!-- Game Container (Initially Hidden) -->
+        <!-- Game Container (기본적으로 숨김, JS가 표시/숨김 처리) -->
         <div id="game-container" class="hidden">
-            <div id="story-container" class="bg-white rounded-xl shadow-md p-6 mb-8 min-h-64">
-                <div id="story-text" class="story-text text-lg">
+            <div id="story-container" class="bg-white rounded-xl shadow-md p-6 mb-8 min-h-[200px] max-h-[400px] overflow-y-auto">
+                <div id="story-text" class="story-text text-lg leading-relaxed">
                     <!-- Story text will appear here -->
                 </div>
             </div>
             <div id="choices-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 <!-- Choices will be dynamically added here -->
             </div>
-            <div id="input-container" class="bg-white rounded-xl shadow-md p-6">
+            <div id="custom-input-container" class="bg-white rounded-xl shadow-md p-6">
                 <div class="flex flex-col md:flex-row gap-4">
                     <input type="text" id="custom-input" 
                         class="flex-grow px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
@@ -141,180 +218,21 @@
                     </button>
                 </div>
             </div>
+             <div class="mt-8 text-center">
+                 <button id="new-adventure-btn-ingame" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    <i class="fas fa-home mr-2"></i>처음으로 (세계관 선택으로 돌아가기)
+                </button>
+            </div>
         </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-gray-100 py-6">
-        <div class="container mx-auto px-4 text-center text-gray-600">
-            <p>© 2023 스토리 다이브. 모든 권리 보유.</p>
-            <p class="mt-2 text-sm">AI 기반 인터랙티브 스토리텔링 플랫폼</p>
-        </div>
-    </footer>
-
+    <!-- ... (기존 JavaScript 변수 전달 및 스크립트 로드) ... -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // DOM Elements
-            const worldSelectionContainer = document.getElementById('world-selection-container');
-            const gameContainer = document.getElementById('game-container');
-            
-            const storyTextElement = document.getElementById('story-text');
-            const choicesContainer = document.getElementById('choices-container');
-            const customInput = document.getElementById('custom-input');
-            const submitInputButton = document.getElementById('submit-input-btn');
-            const newAdventureBtn = document.getElementById('new-adventure-btn'); // Renamed from new-story-btn
-
-            const presetWorldsButtonsContainer = document.getElementById('preset-worlds-buttons');
-            const customWorldInput = document.getElementById('custom-world-input');
-            const startCustomWorldBtn = document.getElementById('start-custom-world-btn');
-            
-            let currentStoryContext = { history: "" };
-            let isLoading = false;
-
-            function showWorldSelectionScreen() {
-                worldSelectionContainer.classList.remove('hidden');
-                gameContainer.classList.add('hidden');
-                currentStoryContext = { history: "" }; // Reset context when going back to selection
-                customWorldInput.value = ""; // Clear custom input textarea
-                storyTextElement.innerHTML = ''; // Clear any previous game text
-                choicesContainer.innerHTML = ''; // Clear previous choices
-            }
-
-            function showGameScreen() {
-                worldSelectionContainer.classList.add('hidden');
-                gameContainer.classList.remove('hidden');
-            }
-
-            function showLoading(show, message = "AI가 다음 이야기를 생성 중입니다...") {
-                if (show) {
-                    const loadingHTML = `
-                        <div class="text-center py-8">
-                            <div class="inline-block animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-600 mb-3"></div>
-                            <p class="text-lg text-gray-600">${message}</p>
-                        </div>
-                    `;
-                    storyTextElement.innerHTML = loadingHTML;
-                    choicesContainer.innerHTML = '';
-                }
-                // On hide, displayStory will populate the content.
-                customInput.disabled = show;
-                submitInputButton.disabled = show;
-                newAdventureBtn.disabled = show;
-                // Disable preset and custom world buttons during any loading
-                document.querySelectorAll('#preset-worlds-buttons button, #start-custom-world-btn').forEach(btn => btn.disabled = show);
-            }
-
-            function displayStory(text) {
-                storyTextElement.innerHTML = ''; 
-                storyTextElement.textContent = text.replace(/\\\\n/g, '\\n');
-            }
-
-            function updateChoices(choices) {
-                choicesContainer.innerHTML = '';
-                if (choices && choices.length > 0) {
-                    choices.forEach((choice, index) => {
-                        const button = document.createElement('button');
-                        button.className = 'choice-btn bg-white border-2 border-indigo-500 text-indigo-600 px-6 py-4 rounded-xl font-medium hover:bg-indigo-50 transition fade-in';
-                        button.style.animationDelay = `${0.1 * index}s`;
-                        button.textContent = choice.text;
-                        button.addEventListener('click', () => handleAction({ 
-                            action_type: "continue_story", 
-                            choice_id: choice.id, 
-                            choice_text: choice.text 
-                        }));
-                        choicesContainer.appendChild(button);
-                    });
-                }
-            }
-            
-            async function handleAction(actionPayload) {
-                if (isLoading) return;
-                isLoading = true;
-                
-                let loadingMessage = "AI가 다음 이야기를 생성 중입니다...";
-                if (actionPayload.action_type === "start_story") {
-                    loadingMessage = "선택하신 세계관으로 새로운 모험을 만들고 있습니다...";
-                    showGameScreen(); // Show game screen as soon as story generation starts
-                }
-                showLoading(true, loadingMessage);
-
-                try {
-                    const response = await fetch('/api/action', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ...actionPayload, context: currentStoryContext }),
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({ error: `HTTP error! status: ${response.status} - ${response.statusText}` }));
-                        throw new Error(errorData.error || `HTTP error! status: ${response.status} - ${response.statusText}`);
-                    }
-
-                    const data = await response.json();
-                    currentStoryContext = data.new_context;
-                    displayStory(data.text);
-                    updateChoices(data.choices);
-
-                } catch (error) {
-                    console.error("Error during action:", error);
-                    displayStory(`오류가 발생했습니다: ${error.message}. 잠시 후 '처음으로' 버튼을 눌러 다시 시도해주세요.`);
-                    updateChoices([]); 
-                } finally {
-                    isLoading = false;
-                    showLoading(false);
-                    if (gameContainer.classList.contains('hidden') === false) { // Only focus if game screen is active
-                        customInput.focus();
-                    }
-                    // Re-enable world selection buttons if we are on that screen (e.g. if start_story failed)
-                    if (!gameContainer.classList.contains('hidden')) {
-                         document.querySelectorAll('#preset-worlds-buttons button, #start-custom-world-btn').forEach(btn => btn.disabled = false);
-                    }
-                }
-            }
-
-            function submitCustomInputAction() {
-                const inputText = customInput.value.trim();
-                if (!inputText) return;
-                customInput.value = ''; 
-                handleAction({ action_type: "continue_story", custom_input: inputText });
-            }
-            
-            // Event Listeners
-            newAdventureBtn.addEventListener('click', () => {
-                 if (confirm("현재 진행중인 모험을 중단하고 처음으로 돌아가시겠습니까?")) {
-                    showWorldSelectionScreen();
-                }
-            });
-            
-            submitInputButton.addEventListener('click', submitCustomInputAction);
-            customInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    submitCustomInputAction();
-                }
-            });
-
-            // Preset world buttons (event delegation if buttons are added dynamically, but here they are from Jinja)
-            document.querySelectorAll('.preset-world-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    const worldKey = this.dataset.worldKey;
-                    handleAction({ action_type: "start_story", world_key: worldKey });
-                });
-            });
-
-            startCustomWorldBtn.addEventListener('click', () => {
-                const customSetting = customWorldInput.value.trim();
-                if (!customSetting) {
-                    alert("나만의 세계관 설정을 입력해주세요!");
-                    customWorldInput.focus();
-                    return;
-                }
-                handleAction({ action_type: "start_story", custom_world_setting: customSetting });
-            });
-            
-            // Initial setup
-            showWorldSelectionScreen(); // Start with the world selection screen
-        });
+        // Supabase 설정값을 JavaScript로 전달
+        var supabaseUrl = "{{ supabase_url }}";
+        var supabaseAnonKey = "{{ supabase_anon_key }}";
+        var presetWorldsData = JSON.parse('{{ preset_worlds | tojson | safe }}');
     </script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
-</html>
+</html> 
