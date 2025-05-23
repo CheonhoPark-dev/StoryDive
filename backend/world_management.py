@@ -40,12 +40,16 @@ def create_world():
         tags = []
     
     genre = data.get('genre')
-    if genre is not None and (not isinstance(genre, str) or not genre.strip()):
-         return jsonify({"error": "장르(genre)는 비어있지 않은 문자열이어야 합니다."}), 400
+    if genre is not None and (not isinstance(genre, str) or not genre.strip()): # Allow empty string to become None later
+         return jsonify({"error": "장르(genre)는 문자열이어야 합니다."}), 400
 
     cover_image_url = data.get('cover_image_url')
-    if cover_image_url is not None and (not isinstance(cover_image_url, str) or not cover_image_url.strip()):
-        return jsonify({"error": "커버 이미지 URL(cover_image_url)은 비어있지 않은 문자열이어야 합니다."}), 400
+    # cover_image_url은 선택 사항이므로, 값이 제공되었을 때만 문자열인지, 그리고 비어있지 않은지 검사합니다.
+    # 빈 문자열로 들어오면 None으로 처리되도록 합니다.
+    if cover_image_url is not None and not isinstance(cover_image_url, str):
+        return jsonify({"error": "커버 이미지 URL(cover_image_url)은 문자열이어야 합니다."}), 400
+    if isinstance(cover_image_url, str) and not cover_image_url.strip(): # 빈 문자열이면 None으로 처리
+        cover_image_url = None
 
     client = get_db_client()
     if not client:
@@ -59,8 +63,8 @@ def create_world():
             "is_public": is_public,
             "is_system_world": False,
             "tags": tags,
-            "genre": genre.strip() if genre else None,
-            "cover_image_url": cover_image_url.strip() if cover_image_url else None
+            "genre": genre.strip() if genre and isinstance(genre, str) else None, # Ensure genre is stripped or None
+            "cover_image_url": cover_image_url.strip() if cover_image_url and isinstance(cover_image_url, str) else None # Ensure URL is stripped or None
         }
                 
         response = client.table("worlds").insert(world_data).execute()
@@ -82,6 +86,42 @@ def create_world():
 
     except Exception as e:
         print(f"세계관 생성 중 서버 오류: {e}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"서버 내부 오류가 발생했습니다: {str(e)}"}), 500
+
+@worlds_bp.route('', methods=['GET'])
+def get_public_worlds():
+    """공개된 세계관 목록을 가져옵니다."""
+    client = get_db_client()
+    if not client:
+        return jsonify({"error": "데이터베이스 연결에 실패했습니다."}), 500
+
+    try:
+        query = client.table("worlds") \
+                      .select("id, title, setting, is_public, genre, tags, cover_image_url, created_at, updated_at, user_id") \
+                      .eq("is_public", True) \
+                      .eq("is_system_world", False) # 시스템 프리셋 세계관 제외
+        
+        # 페이지네이션 (선택 사항, 많은 세계관이 있을 경우 고려)
+        # page = request.args.get('page', 1, type=int)
+        # per_page = request.args.get('per_page', 9, type=int)
+        # query = query.range((page - 1) * per_page, page * per_page - 1)
+        
+        response = query.order('updated_at', desc=True).execute()
+
+        if hasattr(response, 'data') and response.data is not None:
+            # 사용자 정보를 직접 노출하지 않기 위해 user_id를 제거하거나 해시 처리 등을 고려할 수 있으나,
+            # 여기서는 간단히 포함하고 프론트엔드에서 표시 여부를 결정합니다.
+            return jsonify(response.data), 200
+        elif hasattr(response, 'error') and response.error:
+            error_message = f"공개 세계관 목록 조회 중 오류 발생: {response.error.message if hasattr(response.error, 'message') else str(response.error)}"
+            print(f"Supabase select error (public worlds): {error_message}")
+            return jsonify({"error": error_message}), 500
+        else:
+            return jsonify([]), 200 # 데이터가 없는 경우 빈 리스트 반환
+            
+    except Exception as e:
+        print(f"공개 세계관 목록 조회 중 서버 오류: {e}")
         print(traceback.format_exc())
         return jsonify({"error": f"서버 내부 오류가 발생했습니다: {str(e)}"}), 500
 

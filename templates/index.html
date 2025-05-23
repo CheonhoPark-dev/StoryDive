@@ -12,8 +12,8 @@
         
         body {
             font-family: 'Noto Sans KR', sans-serif;
-            background-color: #f8f9fa;
-            color: #333;
+            background-color: #111827; /* 다크 모드 배경색 */
+            color: #e5e7eb; /* 다크 모드 기본 텍스트 색상 */
         }
         
         .story-text {
@@ -42,196 +42,277 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
-        /* 타입라이터 효과 관련 CSS 제거 또는 주석 처리 */
-        /*
-        .typewriter {
-            overflow: hidden;
-            border-right: .15em solid #4f46e5; 
-            white-space: pre-wrap; 
-            margin: 0 auto; 
-            letter-spacing: .15em; 
-            animation: 
-                typing 3.5s steps(40, end),
-                blink-caret .75s step-end infinite;
+
+        /* 사이드바 스타일 */
+        .sidebar {
+            background-color: #1f2937; /* 사이드바 배경색 */
         }
-        
-        @keyframes typing {
-            from { width: 0 }
-            to { width: 100% }
+
+        /* 메인 콘텐츠 영역 스타일 */
+        .main-content {
+            background-color: #111827; /* 메인 콘텐츠 배경색 */
         }
-        
-        @keyframes blink-caret {
-            from, to { border-color: transparent }
-            50% { border-color: #4f46e5; }
+        .content-card {
+            background-color: #1f2937; /* 콘텐츠 카드 배경색 */
+            border: 1px solid #374151; /* 카드 테두리 */
         }
-        */
+        .input-field {
+            background-color: #374151; /* 입력 필드 배경 */
+            border: 1px solid #4b5563;
+            color: #e5e7eb;
+        }
+        .input-field::placeholder {
+            color: #9ca3af;
+        }
+        .btn-primary {
+            background-color: #4f46e5; /* Indigo */
+        }
+        .btn-primary:hover {
+            background-color: #4338ca;
+        }
+        .btn-secondary {
+            background-color: #059669; /* Teal */
+        }
+        .btn-secondary:hover {
+            background-color: #047857;
+        }
+        .btn-danger {
+            background-color: #dc2626; /* Red */
+        }
+        .btn-danger:hover {
+            background-color: #b91c1c;
+        }
+        .btn-gray {
+            background-color: #4b5563;
+        }
+        .btn-gray:hover {
+            background-color: #374151;
+        }
+        .text-header {
+            color: #d1d5db; /* 밝은 회색 */
+        }
+        .text-subheader {
+            color: #9ca3af; /* 중간 회색 */
+        }
+        .text-content {
+            color: #e5e7eb; /* 밝은 회색 (본문용) */
+        }
+
     </style>
 </head>
-<body class="bg-gray-100 font-sans leading-normal tracking-normal">
-    <header class="bg-indigo-600 p-4 shadow-md">
-        <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-3xl font-bold text-white"><i class="fas fa-feather-alt mr-2"></i> 스토리 다이브</h1>
-            <div id="user-info-display" class="hidden text-white flex items-center">
-                <span id="user-email-display" class="mr-4"></span>
-                <!-- 로그인 버튼은 login.html로 이동되었으므로 여기서는 제거 -->
-                <!-- <button id="login-btn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg mr-2"> <i class="fab fa-google mr-2"></i> 로그인</button> -->
-                <button id="logout-btn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"><i class="fas fa-sign-out-alt mr-2"></i> 로그아웃</button>
+<body class="flex h-screen font-sans leading-normal tracking-normal">
+
+    <!-- 왼쪽 사이드바 -->
+    <aside id="sidebar" class="sidebar w-64 p-6 flex flex-col fixed top-0 left-0 h-full z-20 transition-transform duration-300 ease-in-out">
+        <div class="mb-6">
+            <div class="text-3xl font-bold text-white mb-10 text-center">
+                <i class="fas fa-feather-alt mr-2"></i> 스토리 다이브
+            </div>
+            <nav class="space-y-2">
+                <button id="home-btn" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-base font-medium transition">
+                    <i class="fas fa-home fa-fw"></i>
+                    <span>홈 (세계관 선택)</span>
+                </button>
+                <button id="show-create-world-form-btn-sidebar" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-base font-medium transition">
+                    <i class="fas fa-plus-circle fa-fw"></i>
+                    <span>새 세계관 만들기</span>
+                </button>
+                <button id="show-my-worlds-btn-sidebar" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-base font-medium transition">
+                    <i class="fas fa-list fa-fw"></i>
+                    <span>내 세계관 목록</span>
+                </button>
+                <!-- 필요에 따라 다른 네비게이션 링크 추가 -->
+            </nav>
+        </div>
+        <div id="user-info-sidebar" class="hidden mt-auto">
+            <div class="border-t border-gray-700 pt-4">
+                 <div class="flex items-center mb-2">
+                    <i class="fas fa-user-circle fa-2x text-gray-400 mr-3"></i>
+                    <div>
+                        <span id="user-email-display-sidebar" class="block text-sm font-medium text-gray-300"></span>
+                        <!-- <span class="text-xs text-gray-500">Pro Plan</span> -->
+                    </div>
+                </div>
+                <button id="logout-btn-sidebar" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition">
+                    <i class="fas fa-sign-out-alt fa-fw"></i>
+                    <span>로그아웃</span>
+                </button>
             </div>
         </div>
-    </header>
+    </aside>
 
-    <main class="container mx-auto p-4 mt-6">
-        <!-- 로그인 요구 메시지는 이미 주석 처리됨 -->
+    <!-- 메인 콘텐츠 영역 (사이드바 너비만큼 왼쪽 마진 필요) -->
+    <div id="main-content-area" class="main-content flex-1 flex flex-col ml-64 transition-all duration-300 ease-in-out">
+        <!-- 상단 바 (선택 사항, 필요시 사용) -->
+        <header class="bg-gray-800 shadow-md p-4 sticky top-0 z-10 flex items-center">
+            <!-- 사이드바 토글 버튼 -->
+            <button id="sidebar-toggle-btn" class="text-gray-300 hover:text-white focus:outline-none mr-4">
+                <i class="fas fa-bars fa-lg"></i>
+            </button>
+            <div class="container mx-auto flex justify-between items-center">
+                <h2 id="main-content-header" class="text-xl font-semibold text-header">모험을 선택하세요</h2>
+                <!-- 상단 바에 다른 요소 추가 가능 -->
+            </div>
+        </header>
 
-        <!-- 로딩 인디케이터 (이제 script.js에서 story-text 내부에 직접 생성하므로 이 DIV는 제거) -->
-        <!-- 
-        <div id="loading-indicator" style="display: none;" class="text-center py-10">
-            <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-            <p class="text-lg text-gray-600 mt-4">처리 중...</p>
-        </div>
-        -->
+        <!-- 실제 콘텐츠 -->
+        <main class="flex-1 p-6 overflow-y-auto">
+            <!-- World Selection Container -->
+            <div id="world-selection-container" class="hidden">
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <!-- Preset Worlds Section Removed -->
 
-        <!-- World Selection Container (기본적으로 숨김, JS가 표시/숨김 처리) -->
-        <div id="world-selection-container" class="hidden">
-            <h2 class="text-2xl font-semibold mb-6 text-center text-indigo-700">새로운 모험 시작하기</h2>
-            <div class="grid md:grid-cols-2 gap-8">
-                <!-- Preset Worlds -->
-                <div class="bg-white p-6 rounded-xl shadow-md">
-                    <h3 class="text-xl font-semibold mb-4 text-gray-700">추천 세계관 선택:</h3>
-                    <div id="preset-worlds-buttons" class="space-y-3">
-                        <!-- JavaScript에 의해 동적으로 버튼 추가됨 (또는 Flask 템플릿으로 직접 렌더링) -->
-                        {% if preset_worlds %}
-                            {% for key, title in preset_worlds.items() %}
-                                <button data-world-key="{{ key }}" class="w-full preset-world-btn bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium transition">
-                                    <i class="fas fa-star mr-2"></i>{{ title }}
-                                </button>
-                            {% endfor %}
-                        {% else %}
-                            <p class="text-gray-500">추천 세계관을 불러오지 못했습니다.</p>
-                        {% endif %}
+                    <!-- 공개 세계관 목록 표시 영역 -->
+                    <div id="public-worlds-section" class="content-card p-6 rounded-xl md:col-span-2 lg:col-span-3 mb-8">
+                        <h3 class="text-xl font-semibold mb-4 text-header">다른 사용자의 공개 세계관 탐색하기</h3>
+                        <div id="public-worlds-feedback" class="text-sm mb-2"></div>
+                        <div id="public-worlds-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                            <!-- JavaScript에 의해 동적으로 공개 세계관 목록이 여기에 추가됩니다. -->
+                            <p id="public-worlds-loading-msg" class="text-content md:col-span-2 lg:col-span-3">공개 세계관 목록을 불러오는 중...</p>
+                        </div>
+                    </div>
+
+                    <!-- 내가 만든 세계관 목록 표시 영역 -->
+                    <div id="my-worlds-section" class="content-card p-6 rounded-xl md:col-span-2 lg:col-span-3">
+                        <h3 class="text-xl font-semibold mb-4 text-header">내가 만든 세계관:</h3>
+                        <div id="my-worlds-feedback" class="text-sm mb-2"></div>
+                        <div id="my-worlds-list" class="space-y-3">
+                            <p id="my-worlds-loading-msg" class="text-content">내 세계관 목록을 불러오는 중...</p>
+                        </div>
                     </div>
                 </div>
-
-                <!-- 내가 만든 세계관 목록 표시 영역 -->
-                <div class="bg-white p-6 rounded-xl shadow-md md:col-span-2 mb-8">
-                    <h3 class="text-xl font-semibold mb-4 text-gray-700">내가 만든 세계관:</h3>
-                    <div id="my-worlds-list" class="space-y-3">
-                        <!-- JavaScript에 의해 동적으로 나의 세계관 목록이 여기에 추가됩니다. -->
-                        <p id="my-worlds-loading-msg" class="text-gray-500">내 세계관 목록을 불러오는 중...</p>
-                    </div>
-                </div>
-
-                <!-- "내 세계관 만들기 (저장형)" 버튼 추가 -->
-                <div class="bg-white p-6 rounded-xl shadow-md md:col-span-2 mb-8">
-                    <button id="show-create-world-form-btn" class="w-full bg-teal-500 hover:bg-teal-600 text-white px-6 py-3 rounded-lg font-medium transition flex items-center justify-center">
-                        <i class="fas fa-plus-circle mr-2"></i>내 세계관 만들고 저장하기
-                    </button>
-                </div>
-
+                
+                <!-- 세계관 생성/수정 폼들은 이제 모달 또는 별도 섹션으로 처리하는 것이 좋지만, 일단 여기에 숨겨둡니다. -->
                 <!-- 저장형 세계관 생성 폼 (기본 숨김) -->
-                <div id="create-world-form-container" class="hidden md:col-span-2 bg-white p-8 rounded-xl shadow-lg mb-8">
-                    <h3 class="text-2xl font-semibold mb-6 text-gray-800 text-center">새로운 세계관 정보 입력</h3>
+                <div id="create-world-form-container" class="hidden content-card p-8 rounded-xl shadow-lg mb-8 md:col-span-2 lg:col-span-3">
+                    <h3 class="text-2xl font-semibold mb-6 text-header text-center">새로운 세계관 정보 입력</h3>
                     <form id="create-world-form" class="space-y-6">
                         <div>
-                            <label for="world-title" class="block text-sm font-medium text-gray-700 mb-1">세계관 제목 <span class="text-red-500">*</span></label>
+                            <label for="world-title" class="block text-sm font-medium text-subheader mb-1">세계관 제목 <span class="text-red-500">*</span></label>
                             <input type="text" id="world-title" name="title" required
-                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                                   class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
                                    placeholder="예: 마법 고양이들의 비밀 학교">
                         </div>
                         <div>
-                            <label for="world-setting" class="block text-sm font-medium text-gray-700 mb-1">세계관 상세 설정 <span class="text-red-500">*</span></label>
+                            <label for="world-setting" class="block text-sm font-medium text-subheader mb-1">세계관 상세 설정 <span class="text-red-500">*</span></label>
                             <textarea id="world-setting" name="setting" rows="6" required
-                                      class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                                      class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
                                       placeholder="이 세계관의 배경, 주요 규칙, 분위기 등을 자세히 설명해주세요..."></textarea>
                         </div>
                         <div class="flex items-center">
                             <input type="checkbox" id="world-is-public" name="is_public"
-                                   class="h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 mr-2">
-                            <label for="world-is-public" class="text-sm font-medium text-gray-700">다른 사용자에게 공개하기</label>
+                                   class="h-5 w-5 text-indigo-600 border-gray-600 rounded focus:ring-indigo-500 mr-2 bg-gray-700">
+                            <label for="world-is-public" class="text-sm font-medium text-subheader">다른 사용자에게 공개하기</label>
                         </div>
                         <div>
-                            <label for="world-genre" class="block text-sm font-medium text-gray-700 mb-1">장르</label>
+                            <label for="world-genre" class="block text-sm font-medium text-subheader mb-1">장르</label>
                             <input type="text" id="world-genre" name="genre"
-                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                                   class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
                                    placeholder="예: 판타지, SF, 미스터리 (선택 사항)">
                         </div>
                         <div>
-                            <label for="world-tags" class="block text-sm font-medium text-gray-700 mb-1">태그 (쉼표로 구분)</label>
+                            <label for="world-tags" class="block text-sm font-medium text-subheader mb-1">태그 (쉼표로 구분)</label>
                             <input type="text" id="world-tags" name="tags"
-                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                                   class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
                                    placeholder="예: 마법, 학원물, 동물, 비밀 (선택 사항)">
                         </div>
                         <div>
-                            <label for="world-cover-image-url" class="block text-sm font-medium text-gray-700 mb-1">커버 이미지 URL</label>
+                            <label for="world-cover-image-url" class="block text-sm font-medium text-subheader mb-1">커버 이미지 URL</label>
                             <input type="url" id="world-cover-image-url" name="cover_image_url"
-                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                                   class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
                                    placeholder="세계관을 나타내는 이미지 주소 (선택 사항)">
                         </div>
                         <div class="flex justify-end space-x-3">
-                            <button type="button" id="cancel-create-world-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-3 rounded-lg font-medium transition">
+                            <button type="button" id="cancel-create-world-btn" class="btn-gray text-white px-6 py-3 rounded-lg font-medium transition">
                                 취소
                             </button>
-                            <button type="submit" id="submit-create-world-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition flex items-center justify-center">
+                            <button type="submit" id="submit-create-world-btn" class="btn-primary text-white px-6 py-3 rounded-lg font-medium transition flex items-center justify-center">
                                 <i class="fas fa-save mr-2"></i>세계관 저장하기
                             </button>
                         </div>
                     </form>
-                    <div id="create-world-feedback" class="mt-4 text-sm"></div>
+                    <div id="create-world-feedback" class="mt-4 text-sm text-content"></div>
                 </div>
 
-                <!-- Custom World Input (기존 즉석 세계관 입력란) -->
-                <div class="bg-white p-6 rounded-xl shadow-md">
-                    <h3 class="text-xl font-semibold mb-4 text-gray-700">나만의 세계관 만들기:</h3>
-                    <textarea id="custom-world-input" rows="8" 
-                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
-                        placeholder="이곳에 당신의 세계관 설정을 자유롭게 입력해주세요. (예: 마법과 과학이 공존하는 미래 도시, 주인공은 시간을 되돌리는 능력을 가진 고등학생이다...)"></textarea>
-                    <button id="start-custom-world-btn" class="mt-4 w-full bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium transition flex items-center justify-center">
-                        <i class="fas fa-feather-alt mr-2"></i>이 세계관으로 모험 시작
-                    </button>
+                <!-- 저장형 세계관 수정 폼 (기본 숨김) -->
+                <div id="edit-world-form-container" class="hidden content-card p-8 rounded-xl shadow-lg mb-8 md:col-span-2 lg:col-span-3">
+                    <h3 class="text-2xl font-semibold mb-6 text-header text-center">세계관 정보 수정</h3>
+                    <form id="edit-world-form" class="space-y-6">
+                        <div>
+                            <label for="edit-world-title" class="block text-sm font-medium text-subheader mb-1">세계관 제목 <span class="text-red-500">*</span></label>
+                            <input type="text" id="edit-world-title" name="title" required
+                                   class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                        </div>
+                        <div>
+                            <label for="edit-world-setting" class="block text-sm font-medium text-subheader mb-1">세계관 상세 설정 <span class="text-red-500">*</span></label>
+                            <textarea id="edit-world-setting" name="setting" rows="6" required
+                                      class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"></textarea>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="edit-world-is-public" name="is_public"
+                                   class="h-5 w-5 text-indigo-600 border-gray-600 rounded focus:ring-indigo-500 mr-2 bg-gray-700">
+                            <label for="edit-world-is-public" class="text-sm font-medium text-subheader">다른 사용자에게 공개하기</label>
+                        </div>
+                        <div>
+                            <label for="edit-world-genre" class="block text-sm font-medium text-subheader mb-1">장르</label>
+                            <input type="text" id="edit-world-genre" name="genre"
+                                   class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                                   placeholder="예: 판타지, SF, 미스터리 (선택 사항)">
+                        </div>
+                        <div>
+                            <label for="edit-world-tags" class="block text-sm font-medium text-subheader mb-1">태그 (쉼표로 구분)</label>
+                            <input type="text" id="edit-world-tags" name="tags"
+                                   class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                                   placeholder="예: 마법, 학원물, 동물, 비밀 (선택 사항)">
+                        </div>
+                        <div>
+                            <label for="edit-world-cover-image-url" class="block text-sm font-medium text-subheader mb-1">커버 이미지 URL</label>
+                            <input type="url" id="edit-world-cover-image-url" name="cover_image_url"
+                                   class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                                   placeholder="세계관을 나타내는 이미지 주소 (선택 사항)">
+                        </div>
+                        <div class="flex justify-end space-x-3">
+                            <button type="button" id="cancel-edit-world-btn" class="btn-gray text-white px-6 py-3 rounded-lg font-medium transition">
+                                취소
+                            </button>
+                            <button type="submit" id="submit-edit-world-btn" class="btn-primary text-white px-6 py-3 rounded-lg font-medium transition flex items-center justify-center">
+                                <i class="fas fa-save mr-2"></i>변경사항 저장하기
+                            </button>
+                        </div>
+                    </form>
+                    <div id="edit-world-feedback" class="mt-4 text-sm text-content"></div>
                 </div>
             </div>
-             <div class="mt-8 text-center">
-                <button id="new-adventure-btn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                    <i class="fas fa-home mr-2"></i>처음으로 (세계관 선택으로 돌아가기)
-                </button>
-            </div>
-        </div>
 
-        <!-- Game Container (기본적으로 숨김, JS가 표시/숨김 처리) -->
-        <div id="game-container" class="hidden">
-            <div id="story-container" class="bg-white rounded-xl shadow-md p-6 mb-8 min-h-[200px] max-h-[400px] overflow-y-auto">
-                <div id="story-text" class="story-text text-lg leading-relaxed">
-                    <!-- Story text will appear here -->
+            <!-- Game Container -->
+            <div id="game-container" class="hidden flex flex-col h-full">
+                 <div id="story-container" class="content-card p-6 rounded-xl mb-6 flex-grow overflow-y-auto min-h-[300px]">
+                    <div id="story-text" class="story-text text-lg leading-relaxed text-content">
+                        <!-- Story text will appear here -->
+                    </div>
+                </div>
+                <div id="choices-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <!-- Choices will be dynamically added here -->
+                </div>
+                <div id="custom-input-container" class="content-card p-6 rounded-xl">
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <input type="text" id="custom-input" 
+                            class="flex-grow px-4 py-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                            placeholder="직접 행동을 입력하세요...">
+                        <button id="submit-input-btn" class="btn-primary text-white px-6 py-3 rounded-lg font-medium transition flex items-center justify-center">
+                            <i class="fas fa-paper-plane mr-2"></i>입력
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div id="choices-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                <!-- Choices will be dynamically added here -->
-            </div>
-            <div id="custom-input-container" class="bg-white rounded-xl shadow-md p-6">
-                <div class="flex flex-col md:flex-row gap-4">
-                    <input type="text" id="custom-input" 
-                        class="flex-grow px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
-                        placeholder="직접 행동을 입력하세요...">
-                    <button id="submit-input-btn" class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-indigo-700 transition flex items-center justify-center">
-                        <i class="fas fa-paper-plane mr-2"></i>입력
-                    </button>
+        </main>
     </div>
-    </div>
-             <div class="mt-8 text-center">
-                 <button id="new-adventure-btn-ingame" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                    <i class="fas fa-home mr-2"></i>처음으로 (세계관 선택으로 돌아가기)
-                </button>
-    </div>
-    </div>
-    </main>
 
-    <!-- ... (기존 JavaScript 변수 전달 및 스크립트 로드) ... -->
     <script>
         // Supabase 설정값을 JavaScript로 전달
         var supabaseUrl = "{{ supabase_url }}";
         var supabaseAnonKey = "{{ supabase_anon_key }}";
-        var presetWorldsData = JSON.parse('{{ preset_worlds | tojson | safe }}');
+        // var presetWorldsData = JSON.parse('{{ preset_worlds | tojson | safe }}'); // 이 줄 제거
     </script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
