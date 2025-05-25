@@ -124,7 +124,7 @@ def load_story_from_db(session_id: str, user_id: str, user_jwt: str | None = Non
         if session_id:
             query = query.eq('session_id', session_id)
         else:
-            query = query.order('last_updated_at', desc=True)
+            query = query.order('last_updated_at', desc=True) 
         
         response = query.maybe_single().execute() # headers 인자 제거
         
@@ -214,4 +214,112 @@ def save_story_to_db(session_id: str, story_content: str,
         print(f"DB에 스토리 저장/업데이트 중 심각한 오류: {e}")
         import traceback
         print(traceback.format_exc())
+        return False 
+
+# ongoing_adventures 테이블 관련 함수들
+
+def save_ongoing_adventure(adventure_data: dict, user_jwt: str | None = None) -> bool:
+    client = get_db_client(user_jwt=user_jwt)
+    if not client:
+        print("DB 저장 실패 (ongoing_adventures): 클라이언트 없음")
+        return False
+
+    required_fields = ['session_id', 'user_id', 'world_id']
+    for field in required_fields:
+        if field not in adventure_data or not adventure_data[field]:
+            print(f"DB 저장 실패 (ongoing_adventures): 필수 필드 '{field}' 누락 또는 비어있음")
+            return False
+    
+    try:
+        data_to_save = {
+            'user_id': str(adventure_data['user_id']),
+            'world_id': str(adventure_data['world_id']),
+            'session_id': str(adventure_data['session_id']),
+            'world_title': adventure_data.get('world_title'),
+            'history': adventure_data.get('history'),
+            'last_ai_response': adventure_data.get('last_ai_response'),
+            'last_choices': adventure_data.get('last_choices'),
+            'active_systems': adventure_data.get('active_systems', {}),
+            'system_configs': adventure_data.get('system_configs', {}),
+            'updated_at': 'now()'
+        }
+        
+        response = client.table('ongoing_adventures') \
+                         .upsert(data_to_save, on_conflict='session_id') \
+                         .execute()
+
+        if hasattr(response, 'error') and response.error:
+            print(f"DB 저장/업데이트 실패 (ongoing_adventures): {response.error.message if hasattr(response.error, 'message') else response.error}")
+            return False
+        
+        print(f"DB 저장/업데이트 성공 (ongoing_adventures): session_id={adventure_data['session_id']}")
+        return True
+
+    except Exception as e:
+        print(f"DB에 ongoing_adventure 저장/업데이트 중 심각한 오류: {e}")
+        import traceback
+        print(traceback.format_exc())
+        return False
+
+def get_ongoing_adventure(session_id: str, user_id: str, user_jwt: str | None = None) -> dict | None:
+    client = get_db_client(user_jwt=user_jwt)
+    if not client or not session_id or not user_id:
+        print(f"DB 로드 실패 (ongoing_adventure): 클라이언트({client is not None}), session_id({session_id is not None}), user_id({user_id is not None}) 누락")
+        return None
+    try:
+        response = client.table('ongoing_adventures') \
+                         .select("*") \
+                         .eq('session_id', session_id) \
+                         .eq('user_id', user_id) \
+                         .maybe_single() \
+                         .execute()
+        
+        if response and hasattr(response, 'data') and response.data:
+            return response.data
+        return None
+    except Exception as e:
+        print(f"DB에서 ongoing_adventure 로드 중 오류: {e}")
+        return None
+
+def get_all_ongoing_adventures(user_id: str, user_jwt: str | None = None) -> list | None:
+    client = get_db_client(user_jwt=user_jwt)
+    if not client or not user_id:
+        print(f"DB 목록 로드 실패 (all_ongoing_adventures): 클라이언트({client is not None}) 또는 user_id({user_id is not None}) 누락")
+        return None
+    try:
+        response = client.table('ongoing_adventures') \
+                         .select("*") \
+                         .eq('user_id', user_id) \
+                         .order('updated_at', desc=True) \
+                         .execute()
+        
+        if response and hasattr(response, 'data'):
+            return response.data
+        return []
+    except Exception as e:
+        print(f"DB에서 all_ongoing_adventures 로드 중 오류: {e}")
+        return None
+
+def delete_ongoing_adventure(session_id: str, user_id: str, user_jwt: str | None = None) -> bool:
+    client = get_db_client(user_jwt=user_jwt)
+    if not client or not session_id or not user_id:
+        print(f"DB 삭제 실패 (ongoing_adventure): 클라이언트({client is not None}), session_id({session_id is not None}), user_id({user_id is not None}) 누락")
+        return False
+    try:
+        response = client.table('ongoing_adventures') \
+                         .delete() \
+                         .eq('session_id', session_id) \
+                         .eq('user_id', user_id) \
+                         .execute()
+        
+        if hasattr(response, 'error') and response.error:
+            # Supabase는 삭제 대상이 없어도 오류를 반환하지 않을 수 있음 (count 등으로 확인 필요 시 추가)
+            print(f"DB 삭제 실패 (ongoing_adventure): {response.error.message if hasattr(response.error, 'message') else response.error}")
+            return False
+        
+        # 삭제 성공 여부는 count 등을 통해 더 명확히 할 수 있으나, 일단 오류 없으면 성공으로 간주
+        print(f"DB 삭제 성공 또는 대상 없음 (ongoing_adventure): session_id={session_id}")
+        return True
+    except Exception as e:
+        print(f"DB에서 ongoing_adventure 삭제 중 오류: {e}")
         return False 

@@ -17,6 +17,11 @@ def create_world():
         return jsonify({"error": "인증되지 않은 사용자이거나 토큰이 없습니다."}), 401
 
     data = request.get_json()
+    # --- 디버깅 코드 추가 시작 ---
+    print("--- [DEBUG] create_world: Received data ---")
+    print(data)
+    # --- 디버깅 코드 추가 끝 ---
+
     if not data:
         return jsonify({"error": "요청 본문이 비어있거나 JSON 형식이 아닙니다."}), 400
 
@@ -51,9 +56,29 @@ def create_world():
     if isinstance(cover_image_url, str) and not cover_image_url.strip(): # 빈 문자열이면 None으로 처리
         cover_image_url = None
 
-    starting_point = data.get('starting_point') # starting_point 가져오기
-    # starting_point는 빈 문자열일 수도 있고, 아예 없을 수도 (None) 있습니다.
-    # Supabase는 None 값을 null로 잘 처리하므로 특별한 타입 검증은 생략 가능 (문자열로 가정).
+    starting_point = data.get('starting_point')
+
+    # 게임 시스템 데이터 가져오기
+    systems = data.get('systems')
+    system_configs = data.get('system_configs')
+
+    # --- 디버깅 코드 추가 시작 ---
+    print(f"--- [DEBUG] create_world: Parsed systems: {systems} ---")
+    print(f"--- [DEBUG] create_world: Parsed system_configs: {system_configs} ---")
+    # --- 디버깅 코드 추가 끝 ---
+
+    if systems is not None:
+        if not isinstance(systems, list) or not all(isinstance(s, str) for s in systems):
+            return jsonify({"error": "시스템(systems)은 문자열 배열이어야 합니다."}), 400
+    else:
+        systems = [] # 기본값
+
+    if system_configs is not None:
+        if not isinstance(system_configs, dict):
+            return jsonify({"error": "시스템 설정(system_configs)은 객체여야 합니다."}), 400
+        # 추가적인 내부 유효성 검사 (예: 각 config에 initial이 있는지 등)는 필요에 따라 추가 가능
+    else:
+        system_configs = {} # 기본값
 
     client = get_db_client(user_jwt=user_jwt)
     if not client:
@@ -68,9 +93,11 @@ def create_world():
             "is_public": is_public,
             "is_system_world": False,
             "tags": tags,
-            "genre": genre.strip() if genre and isinstance(genre, str) else None, # Ensure genre is stripped or None
-            "cover_image_url": cover_image_url.strip() if cover_image_url and isinstance(cover_image_url, str) else None, # Ensure URL is stripped or None
-            "starting_point": starting_point.strip() if starting_point and isinstance(starting_point, str) else (starting_point if starting_point is None else "")
+            "genre": genre.strip() if genre and isinstance(genre, str) else None,
+            "cover_image_url": cover_image_url.strip() if cover_image_url and isinstance(cover_image_url, str) else None,
+            "starting_point": starting_point.strip() if starting_point and isinstance(starting_point, str) else (starting_point if starting_point is None else ""),
+            "systems": systems,
+            "system_configs": system_configs
         }
                 
         response = client.table("worlds").insert(world_data).execute()
@@ -105,7 +132,7 @@ def get_public_worlds():
 
     try:
         query = client.table("worlds") \
-                      .select("id, title, setting, is_public, genre, tags, cover_image_url, created_at, updated_at, user_id, starting_point") \
+                      .select("id, title, setting, is_public, genre, tags, cover_image_url, created_at, updated_at, user_id, starting_point, systems, system_configs") \
                       .eq("is_public", True) \
                       .eq("is_system_world", False) # 시스템 프리셋 세계관 제외
         
@@ -145,7 +172,7 @@ def get_my_worlds():
 
     try:
         user_id = str(current_user.id)
-        query = client.table("worlds").select("id, title, setting, is_public, genre, tags, cover_image_url, created_at, updated_at, starting_point") \
+        query = client.table("worlds").select("id, title, setting, is_public, genre, tags, cover_image_url, created_at, updated_at, starting_point, systems, system_configs") \
                       .eq("user_id", user_id) \
                       .eq("is_system_world", False)
         response = query.order('updated_at', desc=True).execute()
@@ -179,7 +206,7 @@ def update_world(world_id):
     if not data:
         return jsonify({"error": "요청 본문이 비어있거나 JSON 형식이 아닙니다."}), 400
 
-    allowed_fields = ['title', 'setting', 'is_public', 'tags', 'genre', 'cover_image_url', 'starting_point'] # 'starting_point' 추가
+    allowed_fields = ['title', 'setting', 'is_public', 'tags', 'genre', 'cover_image_url', 'starting_point', 'systems', 'system_configs'] # systems, system_configs 추가
     update_data = {}
     if 'title' in data and data['title'] and isinstance(data['title'], str) and data['title'].strip():
         update_data['title'] = data['title'].strip()
@@ -201,9 +228,29 @@ def update_world(world_id):
             update_data['starting_point'] = None
         elif isinstance(sp_value, str):
             update_data['starting_point'] = sp_value.strip()
-        # else: # 다른 타입이면 오류 처리하거나 무시 (여기서는 무시)
-            # pass 
+        # 다른 타입이거나 빈 문자열이 아닌 경우에 대한 처리는 필요에 따라 추가 (현재는 None 아니면 문자열로 가정)
+
+    # systems 및 system_configs 업데이트 로직 추가
+    if 'systems' in data:
+        systems_value = data['systems']
+        if isinstance(systems_value, list) and all(isinstance(s, str) for s in systems_value):
+            update_data['systems'] = systems_value
+        elif systems_value is None: # 명시적으로 null로 설정하려는 경우
+             update_data['systems'] = [] # DB에는 빈 배열로 저장
+        else:
+            # 유효하지 않은 타입이면 오류를 반환하거나 무시할 수 있습니다.
+            # 여기서는 일단 무시하고 넘어가지 않도록 합니다 (필요시 수정).
+            return jsonify({"error": "업데이트 시 시스템(systems)은 문자열 배열이어야 합니다."}), 400
             
+    if 'system_configs' in data:
+        configs_value = data['system_configs']
+        if isinstance(configs_value, dict):
+            update_data['system_configs'] = configs_value
+        elif configs_value is None: # 명시적으로 null로 설정하려는 경우
+            update_data['system_configs'] = {} # DB에는 빈 객체로 저장
+        else:
+            return jsonify({"error": "업데이트 시 시스템 설정(system_configs)은 객체여야 합니다."}), 400
+    
     if not update_data:
         return jsonify({"error": "수정할 내용이 없습니다."}), 400
     

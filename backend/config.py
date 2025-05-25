@@ -9,6 +9,7 @@ load_dotenv() # .env 파일에서 환경 변수 로드
 # Supabase 설정
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET")
 
 # Gemini API 설정
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")

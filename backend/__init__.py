@@ -9,7 +9,6 @@ import os
 from .config import SUPABASE_URL, SUPABASE_KEY, FLASK_SECRET_KEY, GEMINI_API_KEY
 # supabase_client 대신 default_supabase_client를 사용하거나, get_db_client를 통해 접근하므로 직접적인 클라이언트 임포트는 불필요할 수 있음
 # init_supabase_client는 database.py 모듈 로드 시 자동으로 호출되도록 변경했으므로, 여기서 명시적 호출도 불필요.
-# from .database import init_supabase_client # init_supabase_client만 가져오거나, 아예 가져오지 않아도 됨.
 # 만약 init_supabase_client()를 create_app에서 명시적으로 호출하고 싶다면 임포트 유지.
 # 현재 database.py에서 init_supabase_client()가 모듈 레벨에서 호출되므로, 여기서는 호출 불필요.
 from .gemini_utils import DEFAULT_PROMPT_TEMPLATE # Gemini API 초기화는 gemini_utils에서 수행
@@ -18,6 +17,8 @@ from .gemini_utils import DEFAULT_PROMPT_TEMPLATE # Gemini API 초기화는 gemi
 from .story_routes import story_bp
 from .world_management import worlds_bp
 from .adventure_routes import adventure_bp # 새 블루프린트 임포트
+# from .user_routes import user_bp # user_routes.py가 없으므로 주석 처리 또는 삭제
+# from .image_routes import image_bp # image_routes.py가 없으므로 주석 처리 또는 삭제
 
 def create_app():
     print("--- create_app 함수 호출됨 (backend/__init__.py) ---")
@@ -62,6 +63,8 @@ def create_app():
     app.register_blueprint(story_bp)
     app.register_blueprint(worlds_bp)
     app.register_blueprint(adventure_bp) # 새 블루프린트 등록
+    # app.register_blueprint(user_bp) # user_routes.py가 없으므로 주석 처리 또는 삭제
+    # app.register_blueprint(image_bp) # image_routes.py가 없으므로 주석 처리 또는 삭제
 
     @app.route('/')
     def home():

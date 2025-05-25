@@ -2,6 +2,110 @@ import * as api from './api.js';
 import { initSidebar, toggleSidebar } from './sidebar.js';
 import { initTheme, toggleTheme } from './theme.js';
 
+// 게임 시스템 설정 관련 함수들을 먼저 정의합니다.
+function createSystemInputRow(systemName = '', initialValue = '', description = '', isEditForm = false) {
+    const systemRow = document.createElement('div');
+    systemRow.className = 'p-3 border border-gray-600 rounded-md space-y-2 system-row';
+
+    // 시스템 이름
+    const nameLabel = document.createElement('label');
+    nameLabel.className = 'block text-xs font-medium text-gray-400';
+    nameLabel.textContent = '시스템 이름 (예: 체력, 골드, 마나)';
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'w-full p-2 input-field rounded-md system-name';
+    nameInput.placeholder = '시스템 이름';
+    nameInput.value = systemName;
+    nameInput.required = true;
+
+    // 초기값
+    const valueLabel = document.createElement('label');
+    valueLabel.className = 'block text-xs font-medium text-gray-400 mt-1';
+    valueLabel.textContent = '초기값';
+    const valueInput = document.createElement('input');
+    valueInput.type = 'number';
+    valueInput.className = 'w-full p-2 input-field rounded-md system-initial-value';
+    valueInput.placeholder = '0';
+    valueInput.value = initialValue;
+    valueInput.required = true;
+
+    // 설명
+    const descLabel = document.createElement('label');
+    descLabel.className = 'block text-xs font-medium text-gray-400 mt-1';
+    descLabel.textContent = '설명 (선택 사항)';
+    const descInput = document.createElement('input');
+    descInput.type = 'text';
+    descInput.className = 'w-full p-2 input-field rounded-md system-description';
+    descInput.placeholder = '이 시스템에 대한 간단한 설명';
+    descInput.value = description;
+
+    // 삭제 버튼
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'mt-2 btn-danger text-white px-3 py-1 rounded-md text-xs font-medium transition';
+    deleteBtn.innerHTML = '<i class="fas fa-trash-alt mr-1"></i>삭제';
+    deleteBtn.addEventListener('click', () => {
+        systemRow.remove();
+        const containerId = isEditForm ? 'edit-world-systems-container' : 'create-world-systems-container';
+        const container = document.getElementById(containerId);
+        if (container && container.querySelectorAll('.system-row').length === 0) {
+            const p = container.querySelector('p.text-gray-500');
+            if (p) p.classList.remove('hidden');
+        }
+    });
+
+    systemRow.appendChild(nameLabel);
+    systemRow.appendChild(nameInput);
+    systemRow.appendChild(valueLabel);
+    systemRow.appendChild(valueInput);
+    systemRow.appendChild(descLabel);
+    systemRow.appendChild(descInput);
+    systemRow.appendChild(deleteBtn);
+    return systemRow;
+}
+
+function setupSystemInputInterface(containerId, addButtonId, isEditForm = false) {
+    const container = document.getElementById(containerId);
+    const addButton = document.getElementById(addButtonId);
+    const initialMsg = container ? container.querySelector('p.text-gray-500') : null;
+
+    if (addButton && container) {
+        addButton.addEventListener('click', () => {
+            const newRow = createSystemInputRow('', '0', '', isEditForm);
+            container.appendChild(newRow);
+            if (initialMsg) initialMsg.classList.add('hidden'); 
+        });
+    }
+}
+
+// 활성화된 게임 시스템 현황을 화면에 업데이트하는 함수
+function updateActiveSystemsDisplay(activeSystems) {
+    const displayElement = document.getElementById('game-active-systems-display');
+    if (!displayElement) {
+        console.warn('game-active-systems-display 요소를 찾을 수 없습니다.');
+        return;
+    }
+
+    displayElement.innerHTML = ''; // 이전 내용 지우기
+
+    if (activeSystems && Object.keys(activeSystems).length > 0) {
+        console.log("[DEBUG updateActiveSystemsDisplay] Received activeSystems:", activeSystems); // 실제 받은 데이터 확인
+        const ul = document.createElement('ul');
+        ul.className = 'list-disc pl-5 space-y-1 text-sm text-gray-300'; 
+        for (const systemName in activeSystems) {
+            const listItem = document.createElement('li');
+            listItem.textContent = `${systemName}: ${activeSystems[systemName]}`;
+            ul.appendChild(listItem);
+        }
+        displayElement.appendChild(ul);
+        displayElement.classList.remove('hidden'); // 보이도록 설정
+        console.log("[DEBUG updateActiveSystemsDisplay] Element should be visible now.");
+    } else {
+        console.log("[DEBUG updateActiveSystemsDisplay] No active systems or empty, hiding element.");
+        displayElement.classList.add('hidden'); // 시스템 정보가 없으면 숨김
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     // DOM Elements from index.html
     const worldSelectionContainer = document.getElementById('world-selection-container');
@@ -80,6 +184,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ongoingAdventuresListContainer = document.getElementById('ongoing-adventures-list-container');
     const noOngoingAdventuresMsg = document.getElementById('no-ongoing-adventures-msg');
 
+    // 게임 중 시스템 현황 표시 DOM 요소 추가
+    const gameActiveSystemsDisplay = document.getElementById('game-active-systems-display');
+
+    // 테마 토글 버튼 및 관련 요소 (theme.js에서 사용)
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    const themeToggleIcon = document.getElementById('theme-toggle-icon');
+    const themeToggleText = document.getElementById('theme-toggle-text');
+
     // localStorage 키 정의
     const ONGOING_ADVENTURES_KEY = 'storyDiveOngoingAdventures';
     const MAX_ONGOING_ADVENTURES = 5;
@@ -119,13 +231,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             session_id: adventureData.sessionId,
             world_id: adventureData.worldId,
             world_title: adventureData.worldTitle,
+            history: adventureData.currentStoryHistory,
+            last_ai_response: adventureData.lastAiResponse,
+            last_choices: adventureData.lastChoices,
+            active_systems: adventureData.activeSystems,
+            system_configs: adventureData.systemConfigs,
             summary: summary,
-            user_id: window.currentUser.id // api.js 내부에서 user_id를 직접 가져오지 않으므로 여기서 전달
+            user_id: window.currentUser.id
         };
         console.log('[DEBUG] Payload to be sent to /api/adventures (saveOrUpdateOngoingAdventure):', payload);
 
         try {
-            // api.js의 saveOrUpdateOngoingAdventureAPI 함수 사용
             const result = await api.saveOrUpdateOngoingAdventureAPI(payload);
             console.log("서버에 진행중인 모험 저장/업데이트 성공", result);
             await updateContinueAdventureButtonState();
@@ -295,6 +411,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (gameContainer) gameContainer.classList.remove('hidden');
         if (mainContentHeader) mainContentHeader.textContent = worldTitle || "스토리 진행 중";
 
+        // 게임 화면 진입 시 시스템 현황 표시부 초기화 및 숨김
+        if (gameActiveSystemsDisplay) {
+            gameActiveSystemsDisplay.innerHTML = '<p class="text-sm text-gray-400 italic">시스템 정보를 기다리는 중...</p>';
+            gameActiveSystemsDisplay.classList.add('hidden');
+        }
+
         if (submitInputButton) submitInputButton.disabled = false;
         if (customInput) {
             customInput.disabled = false;
@@ -362,7 +484,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function displayStory(text) {
         if (storyTextElement) {
-            storyTextElement.innerHTML = text ? text.replace(/\n/g, '<br>') : '';
+            console.log("[displayStory] Original text:", text);
+            if (!text) {
+                storyTextElement.innerHTML = '';
+                return;
+            }
+
+            let processedHtml = '';
+            const segments = text.split(/(\".*?\")/g).filter(segment => segment && segment.trim() !== '');
+            console.log("[displayStory] Segments:", segments);
+
+            segments.forEach(segment => {
+                const segmentWithBreaks = segment.replace(/\n/g, '<br>');
+                
+                if (segment.startsWith('"') && segment.endsWith('"')) {
+                    console.log("[displayStory] Applying dialog style to:", segmentWithBreaks);
+                    processedHtml += `<span class="text-gray-100">${segmentWithBreaks}</span>`;
+                } else {
+                    console.log("[displayStory] Applying narration style to:", segmentWithBreaks);
+                    processedHtml += `<span class="text-sky-400">${segmentWithBreaks}</span>`;
+                }
+            });
+            console.log("[displayStory] Final processedHtml:", processedHtml);
+            storyTextElement.innerHTML = processedHtml;
             storyTextElement.scrollTop = storyTextElement.scrollHeight;
         }
     }
@@ -406,119 +550,129 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function handleStoryApiCall(actionType, payloadData = {}) {
-        if (isLoading && actionType !== 'load_story' && actionType !== 'start_new_adventure') return;
+        if (isLoading) return;
+        isLoading = true;
+        showLoadingSpinner(true, 'story-feedback', 'AI 응답을 기다리는 중...'); // ID 수정 가능성 있음
 
-        let loadingMessage = "AI가 다음 이야기를 생성 중입니다...";
-        let worldTitleForHeader = "스토리 진행 중";
+        const sessionIdToUse = payloadData.session_id || storySessionId || getSessionId();
+        const currentHistory = currentStoryContext.history;
+        const worldKey = payloadData.world_key || currentWorldId;
+        const worldTitle = payloadData.world_title || currentWorldTitle;
 
-        if (actionType === "start_new_adventure") {
-            loadingMessage = "새로운 모험을 시작합니다...";
-            if (payloadData.world_title) {
-                worldTitleForHeader = payloadData.world_title;
-                currentWorldTitle = payloadData.world_title;
-            }
-        } else if (actionType === "load_story") {
-            loadingMessage = "이전 모험을 불러옵니다...";
-            if (payloadData.world_title) {
-                currentWorldTitle = payloadData.world_title;
-            }
-        }
-
-        showLoading(true, loadingMessage);
-        if (actionType === "start_new_adventure" || actionType === "load_story") {
-            showGameScreen(actionType === "start_new_adventure" ? worldTitleForHeader : "모험 불러오는 중...");
-        }
-
-        let sid = storySessionId;
-
-        if (actionType === "start_new_adventure") {
-            console.log("[DEBUG] Starting new adventure. Clearing old storySessionId from sessionStorage if exists.");
-            sessionStorage.removeItem('storySessionId');
-            sid = getSessionId();
-            console.log("[DEBUG] New session_id for new adventure:", sid);
-            
-            currentStoryContext = { history: "" }; 
-            if (payloadData.world_key) {
-                currentWorldId = payloadData.world_key;
-            }
-        } else if (actionType === "load_story") {
-            sid = payloadData.session_id;
-            currentWorldId = payloadData.world_key;
-            currentStoryContext = { history: "" };
-            console.log("[DEBUG] Loading story with session_id:", sid, "world_id:", currentWorldId);
-        }
-        storySessionId = sid;
-
-        const requestBody = {
+        let apiPayload = {
             action_type: actionType,
-            session_id: sid, 
-            current_story_history: currentStoryContext.history,
-            ...payloadData
+            session_id: sessionIdToUse,
+            current_story_history: currentHistory,
+            world_key: worldKey,
+            world_title: worldTitle,
+            ...payloadData // 선택지 ID, 사용자 입력 등 추가 데이터
         };
         
+        console.log(`[DEBUG] API Call (${actionType}):`, apiPayload);
+
         try {
-            const data = await api.postStoryAction(requestBody);
+            const response = await api.postStoryAction(apiPayload);
+            console.log('API 응답 (main.js):', response);
 
-            if (data.world_title) {
-                currentWorldTitle = data.world_title;
-            } else if (payloadData.world_title && !currentWorldTitle) {
-                currentWorldTitle = payloadData.world_title;
+            if (response.error) {
+                displayStory(`오류가 발생했습니다: ${response.error}. 잠시 후 다시 시도해주세요.`);
+                updateChoices([]);
+                if (response.active_systems) { // 오류 시에도 시스템 정보가 올 수 있음
+                    updateActiveSystemsDisplay(response.active_systems);
+                }
+                return;
             }
 
-            let adventureToSave = {
-                sessionId: sid, 
+            if (actionType === 'start_new_adventure') {
+                storySessionId = response.session_id || sessionIdToUse; // 새 세션 ID 저장
+                currentWorldId = response.world_id || worldKey;
+                currentWorldTitle = response.world_title || worldTitle;
+                // sessionStorage.setItem('storySessionId', storySessionId); // 세션 ID 저장 (필요시)
+                // sessionStorage.setItem('currentWorldKeyForSession', currentWorldId);
+                // sessionStorage.setItem('currentWorldTitleForSession', currentWorldTitle);
+            
+                currentStoryContext.history = response.context?.history || "";
+
+                // 1. 게임 화면으로 먼저 전환 (시스템 표시는 이 단계에서 초기화되고 숨겨짐)
+                showGameScreen(currentWorldTitle);
+
+                // 2. 스토리 및 선택지 표시
+                displayStory(response.new_story_segment || response.context?.history || "이야기를 시작합니다.");
+                updateChoices(response.choices || []);
+                
+                // 3. 시스템 현황 업데이트 및 표시 (hidden 클래스 제거)
+                console.log("[DEBUG active_systems for start_new_adventure]:", response.active_systems);
+                updateActiveSystemsDisplay(response.active_systems || {}); 
+
+                // 4. 새 모험 시작 시, ongoing_adventures에 저장
+                await saveOrUpdateOngoingAdventure({
+                    sessionId: storySessionId,
+                    worldId: currentWorldId,
+                    worldTitle: currentWorldTitle,
+                    currentStoryHistory: currentStoryContext.history,
+                    lastAiResponse: response.new_story_segment,
+                    lastChoices: response.choices,
+                    activeSystems: response.active_systems,
+                    systemConfigs: response.system_configs 
+                });
+
+            } else if (actionType === 'continue_adventure') {
+                currentStoryContext.history = response.context?.history || currentStoryContext.history;
+                displayStory(response.new_story_segment);
+                updateChoices(response.choices);
+                console.log("[DEBUG active_systems for continue_adventure]:", response.active_systems);
+                updateActiveSystemsDisplay(response.active_systems || {}); // 시스템 현황 업데이트
+                
+                 // 모험 이어갈 때도 ongoing_adventures에 저장
+                 await saveOrUpdateOngoingAdventure({
+                    sessionId: storySessionId,
                 worldId: currentWorldId, 
-                worldTitle: currentWorldTitle || "알 수 없는 세계관",
-                currentStoryHistory: data.context?.history || currentStoryContext.history
-            };
+                    worldTitle: currentWorldTitle,
+                    currentStoryHistory: currentStoryContext.history,
+                    lastAiResponse: response.new_story_segment,
+                    lastChoices: response.choices,
+                    activeSystems: response.active_systems,
+                    systemConfigs: response.system_configs
+                });
 
-            if (data.new_story_segment) {
-                displayStory(data.new_story_segment);
-                updateChoices(data.choices || []);
-                currentStoryContext = data.context || { history: "" };
-                if (mainContentHeader && currentWorldTitle) {
-                    mainContentHeader.textContent = currentWorldTitle;
-                }
-                adventureToSave.currentStoryHistory = currentStoryContext.history;
-                await saveOrUpdateOngoingAdventure(adventureToSave);
-                if (actionType === "start_new_adventure") {
-                    await updateContinueAdventureButtonState();
-                }
-            } else if (actionType === "load_story") {
-                if (data.story_history) {
-                    displayStory(data.last_ai_response || data.story_history);
-                    updateChoices(data.last_choices || []);
-                    currentStoryContext = { history: data.story_history };
-                    currentWorldId = data.world_id;
-                    adventureToSave.worldId = currentWorldId;
-                    adventureToSave.worldTitle = currentWorldTitle || data.world_title || "알 수 없는 세계관";
-                    adventureToSave.currentStoryHistory = currentStoryContext.history;
-
-                    if (mainContentHeader) mainContentHeader.textContent = adventureToSave.worldTitle;
-                    await saveOrUpdateOngoingAdventure(adventureToSave);
+            } else if (actionType === 'load_story') {
+                if (response.status === "success") {
+                    storySessionId = response.session_id;
+                    currentWorldId = response.world_id;
+                    // currentWorldTitle은 load_story 응답에 없으므로, adventure list에서 가져오거나,
+                    // API 응답에 포함시키도록 백엔드 수정 필요. 우선은 기존 값 유지 또는 빈 값.
+                    // currentWorldTitle = response.world_title || "불러온 모험"; 
+                    
+                    currentStoryContext.history = response.history || "";
+                    // load_story의 경우 new_story_segment 대신 last_response를 사용해야 할 수 있음
+                    displayStory(response.last_response || response.history || "이야기를 불러왔습니다.");
+                    updateChoices(response.choices || []);
+                    console.log("[DEBUG active_systems for load_story]:", response.active_systems);
+                    updateActiveSystemsDisplay(response.active_systems || {}); // 시스템 현황 업데이트
+                    showGameScreen(response.world_title || currentWorldTitle || "불러온 모험");
                 } else {
-                    alert("이어할 모험을 찾지 못했습니다.");
-                    if (sid) await removeOngoingAdventure(sid);
-                    await showWorldSelectionScreen();
-                }
-            } else {
-                displayStory("이야기를 가져오는데 문제가 발생했습니다. (알 수 없는 응답 형식)");
+                    displayStory(response.message || "저장된 이야기를 불러오는데 실패했습니다.");
                 updateChoices([]); 
-                if (actionType === "load_story") { 
-                    if (sid) await removeOngoingAdventure(sid);
-                    await showWorldSelectionScreen();
+                    updateActiveSystemsDisplay({});
                 }
             }
+            // 기타 액션 타입 처리 ...
+
         } catch (error) {
-            console.error(`API 호출 (${actionType}) 오류 (main.js):`, error, requestBody);
-            displayStory(`오류가 발생했습니다: ${error.message}. 잠시 후 다시 시도해주세요.`);
-            updateChoices([]); 
-            if (actionType === "load_story") { 
-                if (sid) await removeOngoingAdventure(sid);
-                await showWorldSelectionScreen();
+            console.error(`API 호출 (${actionType}) 오류 (main.js):`, error, apiPayload);
+            // 사용자가 볼 수 있는 오류 메시지 표시 강화
+            let errorMessage = `API 호출 중 오류가 발생했습니다 (${actionType}). 다시 시도해주세요.`;
+            if (error.message && error.message.includes("not valid JSON")){
+                 errorMessage = `서버 응답 오류입니다. 관리자에게 문의하거나 잠시 후 다시 시도해주세요. (JSON 파싱 실패)`;
+            } else if (error.message) {
+                errorMessage = `오류: ${error.message}. 잠시 후 다시 시도해주세요.`;
             }
+            displayStory(errorMessage);
+            updateChoices([]);
+            updateActiveSystemsDisplay({}); // 오류 시 시스템 정보 초기화 또는 이전 상태 유지 결정 필요
         } finally {
-            showLoading(false);
+            isLoading = false;
+            showLoadingSpinner(false, 'story-feedback');
         }
     }
 
@@ -639,6 +793,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (editWorldCoverImageUrlInput) editWorldCoverImageUrlInput.value = world.cover_image_url || '';
         if (editWorldStartingPointInput) editWorldStartingPointInput.value = world.starting_point || '';
         
+        // 기존 시스템 정보 로드 (수정 폼)
+        const systemsContainer = document.getElementById('edit-world-systems-container');
+        const initialMsg = systemsContainer ? systemsContainer.querySelector('p.text-gray-500') : null;
+        if (systemsContainer) {
+            systemsContainer.innerHTML = ''; // 기존 필드 모두 제거
+            if (initialMsg) systemsContainer.appendChild(initialMsg); // 초기 메시지 다시 추가 (아래 로직에서 필요시 숨김)
+
+            if (world.systems && world.system_configs && Array.isArray(world.systems) && world.systems.length > 0) {
+                world.systems.forEach(systemName => {
+                    const config = world.system_configs[systemName];
+                    if (config) {
+                        const systemRow = createSystemInputRow(
+                            systemName,
+                            config.initial !== undefined ? String(config.initial) : '0',
+                            config.description || '',
+                            true // isEditForm = true
+                        );
+                        systemsContainer.appendChild(systemRow);
+                    }
+                });
+                if (initialMsg) initialMsg.classList.add('hidden');
+            } else {
+                if (initialMsg) initialMsg.classList.remove('hidden');
+            }
+        }
+        
         if (worldSelectionContainer) worldSelectionContainer.classList.remove('hidden'); 
         if (publicWorldsSection) publicWorldsSection.classList.add('hidden');
         if (myWorldsSection) myWorldsSection.classList.add('hidden');
@@ -662,8 +842,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             genre: formData.get('genre'),
             tags: formData.get('tags') ? formData.get('tags').split(',').map(tag => tag.trim()).filter(tag => tag) : [],
             cover_image_url: formData.get('cover_image_url'),
-            starting_point: formData.get('starting_point')
+            starting_point: formData.get('starting_point'),
+            systems: [],
+            system_configs: {}
         };
+        
+        // 시스템 데이터 수집 (수정 폼)
+        const editSystemRows = document.querySelectorAll('#edit-world-systems-container .system-row');
+        editSystemRows.forEach(row => {
+            const nameInput = row.querySelector('.system-name');
+            const valueInput = row.querySelector('.system-initial-value');
+            const descInput = row.querySelector('.system-description');
+            if (nameInput && valueInput && nameInput.value.trim()) {
+                const systemName = nameInput.value.trim();
+                updatedWorld.systems.push(systemName);
+                updatedWorld.system_configs[systemName] = {
+                    initial: parseFloat(valueInput.value) || 0,
+                    description: descInput ? descInput.value.trim() : ''
+                };
+            }
+        });
         
         if (!updatedWorld.title || !updatedWorld.setting) {
             if(editWorldFeedback) editWorldFeedback.textContent = '세계관 제목과 상세 설정은 필수입니다.';
@@ -785,6 +983,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function initializeApplication(isAfterLogin = false) {
+        console.log("앱 초기화 시작...");
+
+        // 테마 초기화 (DOM 요소 전달)
+        if (themeToggleBtn && themeToggleIcon && themeToggleText) {
+            initTheme(themeToggleIcon, themeToggleText); // theme.js의 initTheme 호출
+            themeToggleBtn.addEventListener('click', toggleTheme); // theme.js의 toggleTheme 호출
+        } else {
+            console.error("테마 토글 버튼 또는 관련 요소를 찾을 수 없습니다.");
+        }
+
+        // 사이드바 초기화
+        if (sidebar && mainContentArea && sidebarToggleIcon) {
+            initSidebar(sidebar, mainContentArea, sidebarToggleIcon);
+        }
+
         await checkUserSession(true);
         await updateContinueAdventureButtonState();
 
@@ -842,7 +1055,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const { error: signOutError } = await window.supabaseClient.auth.signOut();
                 console.log("supabaseClient.auth.signOut() 직접 호출 완료.");
-
+                
                 if (signOutError) {
                     console.error("Supabase 로그아웃 오류 (signOut 직접 호출 시):", signOutError);
                     alert(`로그아웃 중 오류 발생: ${signOutError.message}`);
@@ -861,9 +1074,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // }
 
                 // 공통 정리 로직
-                window.currentUser = null;
-                window.currentSession = null;
-                sessionStorage.clear();
+                    window.currentUser = null;
+                    window.currentSession = null;
+                    sessionStorage.clear();
                 Object.keys(localStorage).forEach(key => {
                     if (key.startsWith('sb-') || key.startsWith('supabase.')) {
                         localStorage.removeItem(key);
@@ -871,19 +1084,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
                 console.log("세션 및 로컬 스토리지 클리어 완료.");
 
-                storySessionId = null;
-                currentWorldId = null;
-                currentWorldTitle = null;
+                    storySessionId = null;
+                    currentWorldId = null;
+                    currentWorldTitle = null;
                 
-                await updateUserUI();
+                    await updateUserUI();
                 console.log("UI 업데이트 완료.");
 
-                if (window.location.pathname !== '/login') {
+                    if (window.location.pathname !== '/login') {
                     console.log("로그인 페이지로 리디렉션 시도...");
-                    window.location.href = '/login';
+                        window.location.href = '/login';
                 } else {
                     console.log("이미 로그인 페이지입니다.");
-                }
+                    }
 
             } catch (e) {
                 console.error("로그아웃 처리 중 예기치 않은 예외 발생:", e);
@@ -919,8 +1132,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                 genre: formData.get('genre'),
                 tags: formData.get('tags') ? formData.get('tags').split(',').map(tag => tag.trim()).filter(tag => tag) : [],
                 cover_image_url: formData.get('cover_image_url'),
-                starting_point: formData.get('starting_point')
+                starting_point: formData.get('starting_point'),
+                systems: [],
+                system_configs: {}
             };
+
+            // 시스템 데이터 수집 (생성 폼)
+            const systemRows = document.querySelectorAll('#create-world-systems-container .system-row');
+            systemRows.forEach(row => {
+                const nameInput = row.querySelector('.system-name');
+                const valueInput = row.querySelector('.system-initial-value');
+                const descInput = row.querySelector('.system-description');
+                if (nameInput && valueInput && nameInput.value.trim()) {
+                    const systemName = nameInput.value.trim();
+                    worldData.systems.push(systemName);
+                    worldData.system_configs[systemName] = {
+                        initial: parseFloat(valueInput.value) || 0,
+                        description: descInput ? descInput.value.trim() : ''
+                    };
+                }
+            });
 
             if (!worldData.title || !worldData.setting) {
                 if(createWorldFeedback) createWorldFeedback.textContent = '세계관 제목과 상세 설정은 필수입니다.';
@@ -1125,38 +1356,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- 테마 토글 로직 ---
-    const themeToggleBtn = document.getElementById('theme-toggle-btn');
-    const themeToggleIcon = document.getElementById('theme-toggle-icon');
-    const themeToggleText = themeToggleBtn ? themeToggleBtn.querySelector('.sidebar-text') : null;
-
-    // main.js에 있던 applyTheme, toggleTheme, applyInitialTheme 함수들은 theme.js의 것을 사용하므로 제거하거나 주석 처리합니다.
-    // theme.js의 initTheme를 호출하여 필요한 DOM 요소들을 전달합니다.
-    // theme.js에서 toggleTheme 함수를 export 했으므로, main.js의 toggleTheme 함수는 제거하거나 이름을 변경해야 충돌을 피할 수 있습니다.
-    // 여기서는 main.js의 toggleTheme 함수는 삭제하고, theme.js의 것을 직접 사용하도록 합니다.
-
-    // function applyTheme(theme) { ... } // 기존 main.js의 applyTheme 함수 주석 처리 또는 삭제
-    // function toggleTheme() { ... } // 기존 main.js의 toggleTheme 함수 주석 처리 또는 삭제
-    // function applyInitialTheme() { ... } // 기존 main.js의 applyInitialTheme 함수 주석 처리 또는 삭제
-
-    // --- 테마 토글 로직 끝 ---
-
-    // 이벤트 리스너
-    if (sidebarToggleBtn) {
-        sidebarToggleBtn.addEventListener('click', toggleSidebar);
-    }
-
-    if (themeToggleBtn) {
-        themeToggleBtn.addEventListener('click', toggleTheme);
-    }
-
-    // 페이지 로드 시 마지막으로 한번 더 버튼 상태 업데이트 (이제 initializeApplication에서 처리)
-    applyInitialSidebarState();
-    // applyInitialTheme(); // theme.js의 initTheme 내에서 applyInitialTheme가 호출되므로 중복 호출 방지
-    if (themeToggleIcon && themeToggleText) { // themeToggleBtn이 아니라 icon과 text 요소 존재 여부 확인
-        initTheme(themeToggleIcon, themeToggleText); // api. 접두사 제거
-    }
-
     document.addEventListener('keydown', (event) => {
         if (gameContainer && !gameContainer.classList.contains('hidden') && !isLoading) {
             const choiceButtons = choicesContainer.querySelectorAll('.choice-btn');
@@ -1175,8 +1374,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         initSidebar(sidebar, mainContentArea, sidebarToggleIcon);
     }
     // Theme 초기화
-    // applyInitialTheme(); // 이 호출은 theme.js의 initTheme 내부에서 처리됩니다.
     if (themeToggleIcon && themeToggleText) { // themeToggleBtn이 아니라 icon과 text 요소 존재 여부 확인
         initTheme(themeToggleIcon, themeToggleText); // api. 접두사 제거
     }
+
+    // 게임 시스템 입력 인터페이스 초기화
+    setupSystemInputInterface('create-world-systems-container', 'create-add-world-system-btn', false);
+    setupSystemInputInterface('edit-world-systems-container', 'edit-add-world-system-btn', true);
+
+    // 페이지 로드 시 가장 먼저 사용자 세션 확인 및 UI 업데이트
+    await initializeApplication(); 
 });

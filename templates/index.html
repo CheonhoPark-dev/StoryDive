@@ -12,8 +12,73 @@
         
         body {
             font-family: 'Noto Sans KR', sans-serif;
-            background-color: #111827; /* 다크 모드 배경색 */
-            color: #e5e7eb; /* 다크 모드 기본 텍스트 색상 */
+            background-color: #0f0f1e; /* 더 깊은 다크 배경 */
+            color: #e5e7eb;
+        }
+        
+        /* 그라디언트 텍스트 */
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* 카드 호버 효과 */
+        .card-hover {
+            transition: all 0.3s ease;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+            border-color: rgba(99, 102, 241, 0.5);
+        }
+        
+        /* 글로우 버튼 */
+        .btn-glow {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-glow::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn-glow:hover::before {
+            left: 100%;
+        }
+        
+        .btn-glow:hover {
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+        }
+        
+        /* 스크롤바 스타일 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
         }
         
         .story-text {
@@ -24,10 +89,15 @@
         .choice-btn {
             transition: all 0.2s ease;
             transform: scale(1);
+            background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+            border: 1px solid rgba(99, 102, 241, 0.3);
         }
         
         .choice-btn:hover {
             transform: scale(1.02);
+            background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+            border-color: rgba(99, 102, 241, 0.6);
+            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.3);
         }
         
         .choice-btn:active {
@@ -45,40 +115,37 @@
 
         /* 사이드바 스타일 */
         .sidebar {
-            background-color: #1f2937; /* 사이드바 배경색 */
-            transition: width 0.3s ease-in-out; /* 너비 변경 시 부드러운 전환 */
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            transition: width 0.3s ease-in-out;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
         }
 
         .sidebar.closed {
-            width: 4.5rem; /* 72px, 아이콘만 보이도록 너비 축소 */
+            width: 4.5rem;
         }
         .sidebar.closed .sidebar-text {
-            display: none; /* 텍스트 숨김 */
+            display: none;
         }
         .sidebar.closed .sidebar-user-email {
-            display: none; /* 사용자 이메일 숨김 */
+            display: none;
         }
         .sidebar.closed .sidebar-logo-text {
-            display: none; /* 텍스트 숨김 */
+            display: none;
         }
-        .sidebar.closed .sidebar-logo-text-group { /* 새 로고 텍스트 그룹 숨김 */
+        .sidebar.closed .sidebar-logo-text-group {
             display: none;
         }
         .sidebar.closed .sidebar-item-container {
-            justify-content: center; /* 아이콘 중앙 정렬 */
-            min-height: 3.5rem; /* 닫혔을 때 각 아이템의 최소 높이 확보 (예시 값) */
-            display: flex; /* 내부 아이콘 수직 중앙 정렬 위해 */
-            align-items: center; /* 내부 아이콘 수직 중앙 정렬 */
-        }
-        .sidebar:not(.closed) .sidebar-logo-icon {
-            /* margin-right: 0.5rem; */ /* 열렸을 때 로고 아이콘과 텍스트 사이 간격 - .sidebar-logo-and-title 내부에서 처리 */
+            justify-content: center;
+            min-height: 3.5rem;
+            display: flex;
+            align-items: center;
         }
 
         .sidebar-header-area {
             display: flex;
             align-items: center;
-            padding-bottom: 1rem; /* 로고/타이틀과 네비게이션 메뉴 사이 간격 */
-            /* border-bottom: 1px solid #374151; mb-5 대신 사용 가능 */
+            padding-bottom: 1rem;
         }
 
         .sidebar.closed .sidebar-header-area {
@@ -86,16 +153,12 @@
             padding-bottom: 0.5rem;
         }
 
-        #sidebar-toggle-btn {
-            /* 기본 스타일 유지 */
-        }
-
         .sidebar:not(.closed) #sidebar-toggle-btn {
-            margin-right: 0.5rem; /* 열렸을 때 토글 버튼과 로고/타이틀 사이 간격 (0.75rem -> 0.5rem으로 수정) */
+            margin-right: 0.5rem;
         }
 
         .sidebar.closed #sidebar-toggle-btn {
-            margin-bottom: 0; /* 닫혔을 때 토글 버튼과 로고 아이콘 사이 간격 (min-height로 대체) */
+            margin-bottom: 0;
         }
 
         .sidebar-logo-and-title {
@@ -104,210 +167,308 @@
         }
         
         .sidebar-logo-and-title .sidebar-logo-icon {
-            margin-right: 0.5rem; /* 로고 아이콘과 텍스트 그룹 사이 간격 (유지) */
+            margin-right: 0.5rem;
         }
 
         .sidebar.closed .sidebar-logo-and-title .sidebar-logo-icon {
-            margin-right: 0; /* 닫혔을 때는 아이콘만 있으므로 오른쪽 마진 제거 */
-            /* margin-bottom 등의 하단 마진은 sidebar-item-container의 높이와 flex 정렬로 관리 */
+            margin-right: 0;
         }
 
         /* 메인 콘텐츠 영역 스타일 */
         .main-content {
-            background-color: #111827; /* 메인 콘텐츠 배경색 */
-            transition: margin-left 0.3s ease-in-out; /* 마진 변경 시 부드러운 전환 */
+            background-color: #0f0f1e;
+            transition: margin-left 0.3s ease-in-out;
         }
         .main-content.sidebar-closed {
-            margin-left: 4.5rem; /* 사이드바 닫혔을 때 마진 */
+            margin-left: 4.5rem;
         }
         .main-content:not(.sidebar-closed) {
-            margin-left: 16rem; /* 256px, 사이드바 열렸을 때 마진 (기존 w-64) */
+            margin-left: 16rem;
         }
 
         .content-card {
-            background-color: #1f2937; /* 콘텐츠 카드 배경색 */
-            border: 1px solid #374151; /* 카드 테두리 */
+            background: linear-gradient(135deg, #1f2937 0%, #2d3748 100%);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
         }
+        
+        .content-card:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+        
         .input-field {
-            background-color: #374151; /* 입력 필드 배경 */
+            background-color: #374151;
             border: 1px solid #4b5563;
             color: #e5e7eb;
+            transition: all 0.3s ease;
         }
+        
+        .input-field:focus {
+            background-color: #404859;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
         .input-field::placeholder {
             color: #9ca3af;
         }
+        
         .btn-primary {
-            background-color: #4f46e5; /* Indigo */
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            transition: all 0.3s ease;
         }
         .btn-primary:hover {
-            background-color: #4338ca;
+            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(99, 102, 241, 0.4);
         }
+        
         .btn-secondary {
-            background-color: #059669; /* Teal */
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         }
         .btn-secondary:hover {
-            background-color: #047857;
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(16, 185, 129, 0.4);
         }
+        
         .btn-danger {
-            background-color: #dc2626; /* Red */
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
         }
         .btn-danger:hover {
-            background-color: #b91c1c;
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(239, 68, 68, 0.4);
         }
+        
         .btn-gray {
-            background-color: #4b5563;
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
         }
         .btn-gray:hover {
-            background-color: #374151;
+            background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+            transform: translateY(-2px);
         }
+        
         .text-header {
-            color: #d1d5db; /* 밝은 회색 */
+            color: #f3f4f6;
         }
         .text-subheader {
-            color: #9ca3af; /* 중간 회색 */
+            color: #d1d5db;
         }
         .text-content {
-            color: #e5e7eb; /* 밝은 회색 (본문용) */
+            color: #e5e7eb;
+        }
+
+        /* 네비게이션 아이템 호버 효과 */
+        .sidebar button {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .sidebar button::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .sidebar button:hover::after {
+            transform: scaleY(1);
+        }
+
+        /* 세계관 카드 애니메이션 */
+        .world-card {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1f2937 0%, #2d3748 100%);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .world-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .world-card:hover::before {
+            opacity: 1;
+        }
+        
+        .world-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+            border-color: rgba(99, 102, 241, 0.5);
+        }
+
+        /* 로딩 애니메이션 */
+        .loading-dots {
+            display: inline-block;
+        }
+        
+        .loading-dots::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+        
+        @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
         }
 
         /* --- Light Mode Styles --- */
         body.light-mode {
-            background-color: #f3f4f6; /* gray-100 */
-            color: #1f2937; /* gray-800 */
+            background-color: #f9fafb;
+            color: #1f2937;
         }
 
         body.light-mode .sidebar {
-            background-color: #ffffff; /* white */
-            border-right: 1px solid #e5e7eb; /* gray-200 */
+            background: linear-gradient(180deg, #ffffff 0%, #f3f4f6 100%);
+            border-right: 1px solid #e5e7eb;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
         }
 
-        body.light-mode .sidebar .sidebar-logo-text-group span:first-child { /* "스토리" 텍스트 */
-            color: #111827; /* gray-900 */
-        }
-        body.light-mode .sidebar .sidebar-logo-text-group span:last-child { /* "다이브" 텍스트 */
-            color: #4f46e5; /* indigo-600 (유지 또는 약간 밝게) */
-        }
-        body.light-mode .sidebar .sidebar-logo-icon { /* 깃털 아이콘 */
-            color: #4f46e5; /* indigo-600 (유지) */
-        }
-
-        body.light-mode .sidebar .text-gray-300 { /* 사이드바 내 기본 텍스트 및 아이콘 색상 */
-            color: #374151; /* gray-700 */
-        }
-        body.light-mode .sidebar .hover\:bg-gray-700:hover {
-            background-color: #e5e7eb; /* gray-200 */
-        }
-        body.light-mode .sidebar .hover\:text-white:hover {
-            color: #111827; /* gray-900 */
-        }
-        body.light-mode .sidebar .border-gray-700 { /* 구분선 */
-            border-color: #e5e7eb; /* gray-200 */
-        }
-        body.light-mode .sidebar #user-email-display-sidebar {
-            color: #374151; /* gray-700 */
-        }
-        body.light-mode .sidebar .fa-user-circle {
-            color: #6b7280; /* gray-500 */
-        }
-
-
-        body.light-mode .main-content {
-            background-color: #f3f4f6; /* gray-100 */
-        }
-
-        body.light-mode .main-content header { /* 상단 바 */
-            background-color: #ffffff; /* white */
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
-        }
-        body.light-mode .main-content header #main-content-header.text-header {
-            color: #111827; /* gray-900 */
-        }
-        body.light-mode .main-content header #sidebar-toggle-btn.text-gray-300 { /* 이 ID는 사이드바로 이동했으므로, 실제 토글버튼 ID로 확인필요 */
-             color: #374151; /* gray-700 */
-        }
-        /* 사이드바 내부 토글 버튼 라이트 모드 스타일 */
-        body.light-mode aside#sidebar #sidebar-toggle-btn.text-gray-300 {
-            color: #374151; /* gray-700 */
-        }
-        body.light-mode aside#sidebar #sidebar-toggle-btn.hover\:text-white:hover {
-            color: #111827; /* gray-900 */
-        }
-
-
-        body.light-mode .content-card {
-            background-color: #ffffff; /* white */
-            border-color: #e5e7eb; /* gray-200 */
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
-        }
-
-        body.light-mode .text-header { /* 콘텐츠 카드 내 h3 등 */
-            color: #111827; /* gray-900 */
-        }
-        body.light-mode .text-subheader {
-            color: #4b5563; /* gray-600 */
-        }
-        body.light-mode .text-content { /* 로딩 메시지 등 */
-            color: #374151; /* gray-700 */
-        }
-        body.light-mode p.text-gray-400 { /* "아직 생성한 세계관이 없습니다" 등 */
-            color: #6b7280; /* gray-500 */
-        }
-
-
-        body.light-mode .input-field {
-            background-color: #f9fafb; /* gray-50 */
-            border-color: #d1d5db; /* gray-300 */
-            color: #111827; /* gray-900 */
-        }
-        body.light-mode .input-field::placeholder {
-            color: #9ca3af; /* gray-400 */
-        }
-
-        /* 버튼 색상은 라이트모드에서도 일단 유지. 필요시 조정 */
-        /* body.light-mode .btn-primary ... */
-
-        body.light-mode #ongoing-adventures-modal .bg-gray-800 { /* 모달 배경 */
-            background-color: #ffffff;
-        }
-        body.light-mode #ongoing-adventures-modal .text-white { /* 모달 타이틀 */
+        body.light-mode .sidebar .sidebar-logo-text-group span:first-child {
             color: #111827;
         }
-        body.light-mode #ongoing-adventures-modal .text-gray-400 { /* 모달 닫기 버튼, "없음" 메시지 */
+        body.light-mode .sidebar .sidebar-logo-text-group span:last-child {
+            color: #6366f1;
+        }
+        body.light-mode .sidebar .sidebar-logo-icon {
+            color: #6366f1;
+        }
+
+        body.light-mode .sidebar .text-gray-300 {
+            color: #374151;
+        }
+        body.light-mode .sidebar .hover\:bg-gray-700:hover {
+            background-color: #f3f4f6;
+        }
+        body.light-mode .sidebar .hover\:text-white:hover {
+            color: #111827;
+        }
+        body.light-mode .sidebar .border-gray-700 {
+            border-color: #e5e7eb;
+        }
+        body.light-mode .sidebar #user-email-display-sidebar {
+            color: #374151;
+        }
+        body.light-mode .sidebar .fa-user-circle {
+            color: #6b7280;
+        }
+
+        body.light-mode .main-content {
+            background-color: #f9fafb;
+        }
+
+        body.light-mode .main-content header {
+            background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        body.light-mode .main-content header #main-content-header.text-header {
+            color: #111827;
+        }
+
+        body.light-mode .content-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+            border-color: #e5e7eb;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        body.light-mode .world-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+            border-color: #e5e7eb;
+        }
+
+        body.light-mode .text-header {
+            color: #111827;
+        }
+        body.light-mode .text-subheader {
+            color: #4b5563;
+        }
+        body.light-mode .text-content {
+            color: #374151;
+        }
+        body.light-mode p.text-gray-400 {
+            color: #6b7280;
+        }
+
+        body.light-mode .input-field {
+            background-color: #ffffff;
+            border-color: #d1d5db;
+            color: #111827;
+        }
+        body.light-mode .input-field:focus {
+            background-color: #f9fafb;
+            border-color: #6366f1;
+        }
+        body.light-mode .input-field::placeholder {
+            color: #9ca3af;
+        }
+
+        body.light-mode .choice-btn {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            border-color: #6366f1;
+            color: #111827;
+        }
+        
+        body.light-mode .choice-btn:hover {
+            background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+        }
+
+        body.light-mode #ongoing-adventures-modal .bg-gray-800 {
+            background-color: #ffffff;
+        }
+        body.light-mode #ongoing-adventures-modal .text-white {
+            color: #111827;
+        }
+        body.light-mode #ongoing-adventures-modal .text-gray-400 {
             color: #6b7280;
         }
         body.light-mode #ongoing-adventures-modal .hover\:text-white:hover {
              color: #111827;
         }
-        body.light-mode #ongoing-adventures-modal .bg-gray-700 { /* 모험 카드 배경 */
+        body.light-mode #ongoing-adventures-modal .bg-gray-700 {
             background-color: #f3f4f6;
         }
         body.light-mode #ongoing-adventures-modal .hover\:bg-gray-600:hover {
             background-color: #e5e7eb;
         }
-        body.light-mode #ongoing-adventures-modal .text-indigo-400 { /* 모험 카드 제목 */
-            color: #4f46e5; 
+        body.light-mode #ongoing-adventures-modal .text-indigo-400 {
+            color: #6366f1; 
         }
-        body.light-mode #ongoing-adventures-modal .text-gray-300 { /* 모험 카드 요약 */
+        body.light-mode #ongoing-adventures-modal .text-gray-300 {
             color: #374151;
         }
-        body.light-mode #ongoing-adventures-modal .text-gray-500 { /* 모험 카드 마지막 플레이 */
+        body.light-mode #ongoing-adventures-modal .text-gray-500 {
             color: #6b7280;
         }
 
         /* 추가/수정: 모바일 화면 대응 */
         @media (max-width: 767px) {
-            /* 모바일에서 사이드바 닫혔을 때의 스타일 */
             .sidebar.closed {
                 width: 0;
                 padding: 0;
                 border-width: 0;
-                /* visibility: hidden; /* 자식 요소를 선택적으로 표시할 수 있도록 하는 대안 */
             }
 
-            /* 닫힌 사이드바 내부의 실제 콘텐츠 요소들 숨기기 */
             .sidebar.closed .sidebar-logo-and-title,
             .sidebar.closed nav,
-            .sidebar.closed .mt-auto { /* 사용자 정보 및 테마 토글 섹션 */
+            .sidebar.closed .mt-auto {
                 display: none;
             }
             .sidebar.closed .sidebar-header-area {
@@ -315,46 +476,41 @@
                 margin: 0;
             }
             
-            /* 모바일에서 닫힌 사이드바의 토글 버튼은 화면 좌상단에 고정 */
             .sidebar.closed #sidebar-toggle-btn {
                 position: fixed;
                 top: 0.75rem; 
                 left: 0.75rem; 
                 z-index: 50; 
-                background-color: #1f2937; 
-                padding: 0.5rem; /* 패딩 줄이기 (기존 p-2 -> p-1 처럼) */
-                min-height: auto; /* 기존 sidebar-item-container의 min-height 무시 */
-                /* rounded-md 등 기존 스타일 유지 */
+                background: linear-gradient(135deg, #1f2937 0%, #2d3748 100%);
+                padding: 0.5rem;
+                min-height: auto;
+                border: 1px solid rgba(99, 102, 241, 0.3);
             }
 
-            /* 모바일에서 닫힌 사이드바의 토글 버튼 내부 아이콘 크기 줄이기 */
             .sidebar.closed #sidebar-toggle-icon {
-                font-size: 1rem; /* fa-lg (1.333em) 보다 작게 */
-                line-height: 1; /* 아이콘이 버튼 중앙에 잘 오도록 line-height 조정 */
+                font-size: 1rem;
+                line-height: 1;
             }
 
-            /* 라이트 모드일 때 모바일 닫힌 사이드바의 토글 버튼 */
             body.light-mode .sidebar.closed #sidebar-toggle-btn {
-                background-color: #ffffff; /* 라이트모드 사이드바 배경 */
-                border: 1px solid #e5e7eb; /* 라이트모드 사이드바 테두리 */
-                color: #374151; /* 라이트모드 기본 아이콘 색상 */
+                background: linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%);
+                border: 1px solid #e5e7eb;
+                color: #374151;
             }
             body.light-mode .sidebar.closed #sidebar-toggle-btn:hover {
-                 background-color: #e5e7eb; /* 라이트모드 호버 배경 */
-                 color: #111827; /* 라이트모드 호버 아이콘 색상 */
+                 background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+                 color: #111827;
             }
 
-            /* 메인 콘텐츠는 사이드바 닫혔을 때 왼쪽 마진 0 */
             .main-content.sidebar-closed {
                 margin-left: 0;
             }
 
-            /* 모바일에서 사이드바 닫혔을 때, 메인 헤더의 패딩을 조정하여 버튼 옆에 텍스트가 오도록 함 */
             .main-content.sidebar-closed header {
-                padding-top: 0.75rem;    /* 버튼의 top 값과 유사하게 맞춤 */
-                padding-bottom: 0.75rem; /* 상단과 대칭, 또는 헤더 높이 조정을 위해 */
-                padding-left: 2.75rem;   /* 버튼 너비(약 1.5rem) + 버튼의 left offset(0.75rem) + 약간의 여유(0.5rem) */
-                padding-right: 1rem;     /* 기존 p-4의 우측 패딩 유지 (명시적으로 설정) */
+                padding-top: 0.75rem;
+                padding-bottom: 0.75rem;
+                padding-left: 2.75rem;
+                padding-right: 1rem;
             }
         }
     </style>
@@ -365,13 +521,13 @@
     <aside id="sidebar" class="sidebar w-64 p-4 flex flex-col fixed top-0 left-0 h-full z-20">
         <!-- 상단 헤더 영역: 토글 버튼 + 로고/타이틀 -->
         <div class="sidebar-header-area mb-1">
-            <button id="sidebar-toggle-btn" class="text-gray-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 p-2 rounded-md sidebar-item-container">
+            <button id="sidebar-toggle-btn" class="text-gray-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 p-2 rounded-md sidebar-item-container transition-all duration-200">
                 <i id="sidebar-toggle-icon" class="fas fa-bars fa-lg"></i>
             </button>
             <div class="sidebar-logo-and-title sidebar-item-container">
                 <i class="fas fa-feather-alt text-2xl text-indigo-400 sidebar-logo-icon"></i>
                 <div class="sidebar-logo-text-group">
-                    <span class="text-xl font-bold text-white">스토리</span><span class="text-xl font-bold text-indigo-400">다이브</span>
+                    <span class="text-xl font-bold text-white">스토리</span><span class="text-xl font-bold gradient-text">다이브</span>
                 </div>
             </div>
         </div>
@@ -393,38 +549,30 @@
                 <i class="fas fa-play-circle fa-fw fa-lg"></i>
                 <span class="sidebar-text">진행중인 모험</span>
             </button>
-            <!-- 필요에 따라 다른 네비게이션 링크 추가 -->
         </nav>
-        <!-- 테마 토글 및 사용자 정보 섹션 컨테이너 -->
-        <div class="mt-auto pt-4 border-t border-gray-700">
-            <!-- 테마 토글 버튼 -->
-            <button id="theme-toggle-btn" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-3 rounded-md text-base font-medium transition sidebar-item-container mb-2">
-                <i id="theme-toggle-icon" class="fas fa-sun fa-fw fa-lg"></i>
-                <span class="sidebar-text">라이트 모드</span>
+        
+        <div id="user-info-sidebar" class="mt-auto pt-4 border-t border-gray-700">
+            <p class="text-sm text-gray-400 sidebar-text">로그인 정보:</p>
+            <p id="user-email-display-sidebar" class="text-sm font-medium sidebar-user-email truncate" title=""></p>
+        </div>
+
+        <button id="theme-toggle-btn" class="sidebar-item-container flex items-center w-full mt-2 p-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-all duration-200">
+            <i id="theme-toggle-icon" class="fas fa-sun w-5 h-5 mr-3"></i>
+            <span class="sidebar-text" id="theme-toggle-text">라이트 모드</span>
             </button>
 
-            <div id="user-info-sidebar" class="hidden"> <!-- 사용자 정보는 테마 토글 아래 -->
-                 <div class="flex items-center mb-3 px-2 py-1 sidebar-item-container">
-                    <i class="fas fa-user-circle fa-2x text-gray-400"></i>
-                    <div class="sidebar-user-email ml-3">
-                        <span id="user-email-display-sidebar" class="block text-sm font-medium text-gray-300"></span>
-                    </div>
-                </div>
-                <button id="logout-btn-sidebar" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-3 rounded-md text-sm font-medium transition sidebar-item-container">
-                    <i class="fas fa-sign-out-alt fa-fw fa-lg"></i>
+        <button id="logout-btn-sidebar" class="sidebar-item-container flex items-center w-full mt-2 p-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-all duration-200">
+            <i class="fas fa-sign-out-alt w-5 h-5 mr-3"></i>
                     <span class="sidebar-text">로그아웃</span>
                 </button>
-            </div>
-        </div>
     </aside>
 
-    <!-- 메인 콘텐츠 영역 (사이드바 너비만큼 왼쪽 마진 필요) -->
+    <!-- 메인 콘텐츠 영역 -->
     <div id="main-content-area" class="main-content flex-1 flex flex-col ml-64">
-        <!-- 상단 바 (선택 사항, 필요시 사용) -->
-        <header class="bg-gray-800 shadow-md p-4 sticky top-0 z-10 flex items-center">
+        <!-- 상단 바 -->
+        <header class="bg-gray-800 shadow-md p-4 sticky top-0 z-10 flex items-center backdrop-blur-sm bg-opacity-90">
             <div class="container mx-auto flex justify-between items-center">
                 <h2 id="main-content-header" class="text-xl font-semibold text-header">공개 세계관 탐색</h2>
-                <!-- 상단 바에 다른 요소 추가 가능 -->
             </div>
     </header>
 
@@ -433,32 +581,38 @@
             <!-- World Selection Container -->
             <div id="world-selection-container" class="">
                 <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                    <!-- Preset Worlds Section Removed -->
-
                     <!-- 공개 세계관 목록 표시 영역 -->
-                    <div id="public-worlds-section" class="content-card p-6 rounded-xl md:col-span-2 lg:col-span-3 mb-8">
-                        <h3 class="text-xl font-semibold mb-4 text-header">다른 사용자의 공개 세계관 탐색하기</h3>
+                    <div id="public-worlds-section" class="content-card p-6 rounded-xl md:col-span-2 lg:col-span-3 mb-8 card-hover">
+                        <h3 class="text-xl font-semibold mb-4 text-header flex items-center">
+                            <i class="fas fa-globe-asia mr-2 text-indigo-400"></i>
+                            다른 사용자의 공개 세계관 탐색하기
+                        </h3>
                         <div id="public-worlds-feedback" class="text-sm mb-2"></div>
                         <div id="public-worlds-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                            <!-- JavaScript에 의해 동적으로 공개 세계관 목록이 여기에 추가됩니다. -->
-                            <p id="public-worlds-loading-msg" class="text-content md:col-span-2 lg:col-span-3">공개 세계관 목록을 불러오는 중...</p>
+                            <p id="public-worlds-loading-msg" class="text-content md:col-span-2 lg:col-span-3">
+                                공개 세계관 목록을 불러오는 중<span class="loading-dots"></span>
+                            </p>
                         </div>
                     </div>
 
                     <!-- 내가 만든 세계관 목록 표시 영역 (기본 숨김) -->
-                    <div id="my-worlds-section" class="hidden content-card p-6 rounded-xl md:col-span-2 lg:col-span-3">
-                        <h3 class="text-xl font-semibold mb-4 text-header">내가 만든 세계관:</h3>
+                    <div id="my-worlds-section" class="hidden content-card p-6 rounded-xl md:col-span-2 lg:col-span-3 card-hover">
+                        <h3 class="text-xl font-semibold mb-4 text-header flex items-center">
+                            <i class="fas fa-user-circle mr-2 text-indigo-400"></i>
+                            내가 만든 세계관
+                        </h3>
                         <div id="my-worlds-feedback" class="text-sm mb-2"></div>
                         <div id="my-worlds-list" class="space-y-3">
-                            <p id="my-worlds-loading-msg" class="text-content">내 세계관 목록을 불러오는 중...</p>
+                            <p id="my-worlds-loading-msg" class="text-content">
+                                내 세계관 목록을 불러오는 중<span class="loading-dots"></span>
+                            </p>
                         </div>
                     </div>
                 </div>
                 
-                <!-- 세계관 생성/수정 폼들은 이제 모달 또는 별도 섹션으로 처리하는 것이 좋지만, 일단 여기에 숨겨둡니다. -->
                 <!-- 저장형 세계관 생성 폼 (기본 숨김) -->
-                <div id="create-world-form-container" class="hidden content-card p-8 rounded-xl shadow-lg mb-8 md:col-span-2 lg:col-span-3">
-                    <h3 class="text-2xl font-semibold mb-6 text-header text-center">새로운 세계관 정보 입력</h3>
+                <div id="create-world-form-container" class="hidden content-card p-8 rounded-xl shadow-lg mb-8 md:col-span-2 lg:col-span-3 card-hover">
+                    <h3 class="text-2xl font-semibold mb-6 text-header text-center gradient-text">새로운 세계관 정보 입력</h3>
                     <form id="create-world-form" class="space-y-6">
                         <div>
                             <label for="world-title" class="block text-sm font-medium text-subheader mb-1">세계관 제목 <span class="text-red-500">*</span></label>
@@ -495,6 +649,19 @@
                                    class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
                                    placeholder="세계관을 나타내는 이미지 주소 (선택 사항)">
                         </div>
+
+                        <!-- 게임 시스템 설정 섹션 -->
+                        <div class="mb-6 p-4 border border-gray-700 rounded-lg">
+                            <h4 class="text-lg font-medium text-subheader mb-3">게임 시스템 설정 (선택 사항)</h4>
+                            <div id="create-world-systems-container" class="space-y-4">
+                                <p class="text-sm text-gray-500">아직 추가된 시스템이 없습니다. "시스템 추가" 버튼을 눌러 캐릭터 스탯, 재화, 포인트 등을 설정하세요.</p>
+                            </div>
+                            <button type="button" id="create-add-world-system-btn"
+                                    class="mt-4 btn-secondary text-white px-4 py-2 rounded-md text-sm font-medium transition hover:bg-teal-600 btn-glow">
+                                <i class="fas fa-plus mr-1"></i> 시스템 추가
+                            </button>
+                        </div>
+
                         <div>
                             <label for="world-starting-point" class="block text-sm font-medium text-subheader mb-1">이야기 시작점 (선택 사항)</label>
                             <textarea id="world-starting-point" name="starting_point" rows="4"
@@ -505,7 +672,7 @@
                             <button type="button" id="cancel-create-world-btn" class="btn-gray text-white px-6 py-3 rounded-lg font-medium transition">
                                 취소
                             </button>
-                            <button type="submit" id="submit-create-world-btn" class="btn-primary text-white px-6 py-3 rounded-lg font-medium transition flex items-center justify-center">
+                            <button type="submit" id="submit-create-world-btn" class="btn-primary text-white px-6 py-3 rounded-lg font-medium transition flex items-center justify-center btn-glow">
                                 <i class="fas fa-save mr-2"></i>세계관 저장하기
                             </button>
                         </div>
@@ -514,8 +681,8 @@
                 </div>
 
                 <!-- 저장형 세계관 수정 폼 (기본 숨김) -->
-                <div id="edit-world-form-container" class="hidden content-card p-8 rounded-xl shadow-lg mb-8 md:col-span-2 lg:col-span-3">
-                    <h3 class="text-2xl font-semibold mb-6 text-header text-center">세계관 정보 수정</h3>
+                <div id="edit-world-form-container" class="hidden content-card p-8 rounded-xl shadow-lg mb-8 md:col-span-2 lg:col-span-3 card-hover">
+                    <h3 class="text-2xl font-semibold mb-6 text-header text-center gradient-text">세계관 정보 수정</h3>
                     <form id="edit-world-form" class="space-y-6">
                         <div>
                             <label for="edit-world-title" class="block text-sm font-medium text-subheader mb-1">세계관 제목 <span class="text-red-500">*</span></label>
@@ -550,6 +717,19 @@
                                    class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
                                    placeholder="세계관을 나타내는 이미지 주소 (선택 사항)">
                         </div>
+
+                        <!-- 게임 시스템 설정 섹션 (수정 폼) -->
+                        <div class="mb-6 p-4 border border-gray-700 rounded-lg">
+                            <h4 class="text-lg font-medium text-subheader mb-3">게임 시스템 설정 (선택 사항)</h4>
+                            <div id="edit-world-systems-container" class="space-y-4">
+                                <p class="text-sm text-gray-500">아직 추가된 시스템이 없습니다. "시스템 추가" 버튼을 눌러 캐릭터 스탯, 재화, 포인트 등을 설정하세요.</p>
+                            </div>
+                            <button type="button" id="edit-add-world-system-btn"
+                                    class="mt-4 btn-secondary text-white px-4 py-2 rounded-md text-sm font-medium transition hover:bg-teal-600 btn-glow">
+                                <i class="fas fa-plus mr-1"></i> 시스템 추가
+                            </button>
+                        </div>
+
                         <div>
                             <label for="edit-world-starting-point" class="block text-sm font-medium text-subheader mb-1">이야기 시작점 (선택 사항)</label>
                             <textarea id="edit-world-starting-point" name="starting_point" rows="4"
@@ -560,7 +740,7 @@
                             <button type="button" id="cancel-edit-world-btn" class="btn-gray text-white px-6 py-3 rounded-lg font-medium transition">
                                 취소
                             </button>
-                            <button type="submit" id="submit-edit-world-btn" class="btn-primary text-white px-6 py-3 rounded-lg font-medium transition flex items-center justify-center">
+                            <button type="submit" id="submit-edit-world-btn" class="btn-primary text-white px-6 py-3 rounded-lg font-medium transition flex items-center justify-center btn-glow">
                                 <i class="fas fa-save mr-2"></i>변경사항 저장하기
                             </button>
                         </div>
@@ -571,7 +751,12 @@
 
             <!-- Game Container -->
             <div id="game-container" class="hidden flex flex-col h-full">
-                 <div id="story-container" class="content-card p-6 rounded-xl mb-6 flex-grow overflow-y-auto min-h-[300px]">
+                 <!-- 게임 시스템 현황 표시 영역 -->
+                 <div id="game-active-systems-display" class="content-card p-4 rounded-xl mb-4 shadow card-hover">
+                    <p class="text-sm text-gray-400 italic">활성화된 게임 시스템 정보가 여기에 표시됩니다.</p>
+                 </div>
+
+                 <div id="story-container" class="content-card p-6 rounded-xl mb-6 flex-grow overflow-y-auto min-h-[300px] card-hover">
                     <div id="story-text" class="story-text text-lg leading-relaxed text-content">
                         <!-- Story text will appear here -->
                     </div>
@@ -579,12 +764,12 @@
                 <div id="choices-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <!-- Choices will be dynamically added here -->
                 </div>
-                <div id="custom-input-container" class="content-card p-6 rounded-xl">
+                <div id="custom-input-container" class="content-card p-6 rounded-xl card-hover">
                     <div class="flex flex-col sm:flex-row gap-4">
                         <input type="text" id="custom-input" 
                             class="flex-grow px-4 py-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
                             placeholder="직접 행동을 입력하세요...">
-                        <button id="submit-input-btn" class="btn-primary text-white px-6 py-3 rounded-lg font-medium transition flex items-center justify-center">
+                        <button id="submit-input-btn" class="btn-primary text-white px-6 py-3 rounded-lg font-medium transition flex items-center justify-center btn-glow">
                             <i class="fas fa-paper-plane mr-2"></i>입력
                         </button>
                     </div>
@@ -597,7 +782,6 @@
         // Supabase 설정값을 JavaScript로 전달
         var supabaseUrl = "{{ supabase_url }}";
         var supabaseAnonKey = "{{ supabase_anon_key }}";
-        // var presetWorldsData = {}; // 이 변수는 더 이상 사용되지 않으므로, 빈 객체로 초기화하거나 완전히 삭제합니다.
     </script>
     <script type="module" src="{{ url_for('static', filename='main.js') }}"></script>
 
@@ -605,8 +789,8 @@
 <div id="ongoing-adventures-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
     <div class="bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-2xl font-semibold text-white">진행중인 모험</h3>
-            <button id="close-ongoing-adventures-modal-btn" class="text-gray-400 hover:text-white text-2xl">
+            <h3 class="text-2xl font-semibold text-white gradient-text">진행중인 모험</h3>
+            <button id="close-ongoing-adventures-modal-btn" class="text-gray-400 hover:text-white text-2xl transition-colors">
                 &times;
             </button>
         </div>
