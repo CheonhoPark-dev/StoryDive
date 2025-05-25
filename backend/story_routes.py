@@ -4,7 +4,7 @@ Routes for story progression (handling actions, loading stories).
 from flask import Blueprint, request, jsonify
 
 # Absolute imports from the 'backend' package perspective
-from backend.auth_utils import get_user_from_request
+from backend.auth_utils import get_user_and_token_from_request
 from backend.database import get_db_client, save_story_to_db, load_story_from_db
 from backend.gemini_utils import call_gemini_api, DEFAULT_PROMPT_TEMPLATE, summarize_story_with_gemini
 from backend.config import GEMINI_API_KEY
@@ -13,9 +13,9 @@ story_bp = Blueprint('story_bp', __name__, url_prefix='/api')
 
 @story_bp.route('/action', methods=['POST'])
 def handle_action():
-    current_user = get_user_from_request(request)
-    if not current_user:
-        return jsonify({"error": "인증되지 않은 사용자입니다."}), 401
+    current_user, user_jwt = get_user_and_token_from_request(request)
+    if not current_user or not user_jwt:
+        return jsonify({"error": "인증되지 않은 사용자이거나 토큰이 없습니다."}), 401
     user_id_from_token = str(current_user.id)
 
     data = request.get_json()
@@ -36,9 +36,10 @@ def handle_action():
     if action_type in ["start_new_adventure", "continue_adventure"] and not world_key:
         return jsonify({"error": f"{action_type} 시 세계관 ID(world_key)가 제공되지 않았습니다."}), 400
 
-    db_client_instance = get_db_client()
+    db_client_instance = get_db_client(user_jwt=user_jwt)
     if not db_client_instance:
-        return jsonify({"error": "데이터베이스 연결에 실패했습니다."}), 500
+        print("Failed to get DB client for user for story action.")
+        return jsonify({"error": "데이터베이스 사용자 세션 연결에 실패했습니다."}), 500
         
     newly_generated_story_segment = ""
     choices_for_client = []
@@ -154,7 +155,7 @@ def handle_action():
         # PRESET_WORLDS 관련 로직 제거
 
     elif action_type == "load_story":
-        loaded_data = load_story_from_db(session_id, user_id_from_token) 
+        loaded_data = load_story_from_db(session_id, user_id_from_token, user_jwt)
         if loaded_data:
             loaded_world_id = loaded_data.get('world_id')
             if db_client_instance and loaded_world_id:

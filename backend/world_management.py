@@ -5,16 +5,16 @@ from flask import Blueprint, request, jsonify
 import traceback # For detailed error logging
 
 # Absolute imports from the 'backend' package perspective
-from backend.auth_utils import get_user_from_request
+from backend.auth_utils import get_user_and_token_from_request
 from backend.database import get_db_client
 
 worlds_bp = Blueprint('worlds_bp', __name__, url_prefix='/api/worlds')
 
 @worlds_bp.route('', methods=['POST'])
 def create_world():
-    current_user = get_user_from_request(request)
-    if not current_user:
-        return jsonify({"error": "인증되지 않은 사용자입니다."}), 401
+    current_user, user_jwt = get_user_and_token_from_request(request)
+    if not current_user or not user_jwt:
+        return jsonify({"error": "인증되지 않은 사용자이거나 토큰이 없습니다."}), 401
 
     data = request.get_json()
     if not data:
@@ -55,9 +55,10 @@ def create_world():
     # starting_point는 빈 문자열일 수도 있고, 아예 없을 수도 (None) 있습니다.
     # Supabase는 None 값을 null로 잘 처리하므로 특별한 타입 검증은 생략 가능 (문자열로 가정).
 
-    client = get_db_client()
+    client = get_db_client(user_jwt=user_jwt)
     if not client:
-        return jsonify({"error": "데이터베이스 연결에 실패했습니다."}), 500
+        print("Failed to get DB client for user for create_world.")
+        return jsonify({"error": "데이터베이스 사용자 세션 연결에 실패했습니다."}), 500
 
     try:
         world_data = {
@@ -69,7 +70,7 @@ def create_world():
             "tags": tags,
             "genre": genre.strip() if genre and isinstance(genre, str) else None, # Ensure genre is stripped or None
             "cover_image_url": cover_image_url.strip() if cover_image_url and isinstance(cover_image_url, str) else None, # Ensure URL is stripped or None
-            "starting_point": starting_point.strip() if starting_point and isinstance(starting_point, str) else (starting_point if starting_point is None else "") # starting_point 추가
+            "starting_point": starting_point.strip() if starting_point and isinstance(starting_point, str) else (starting_point if starting_point is None else "")
         }
                 
         response = client.table("worlds").insert(world_data).execute()
@@ -99,6 +100,7 @@ def get_public_worlds():
     """공개된 세계관 목록을 가져옵니다."""
     client = get_db_client()
     if not client:
+        print("Failed to get default DB client for get_public_worlds.")
         return jsonify({"error": "데이터베이스 연결에 실패했습니다."}), 500
 
     try:
@@ -112,7 +114,7 @@ def get_public_worlds():
         # per_page = request.args.get('per_page', 9, type=int)
         # query = query.range((page - 1) * per_page, page * per_page - 1)
         
-        response = query.order('updated_at', desc=True).execute()
+        response = query.order('updated_at', desc=True).execute() # headers 인자 불필요
 
         if hasattr(response, 'data') and response.data is not None:
             # 사용자 정보를 직접 노출하지 않기 위해 user_id를 제거하거나 해시 처리 등을 고려할 수 있으나,
@@ -132,13 +134,14 @@ def get_public_worlds():
 
 @worlds_bp.route('/mine', methods=['GET'])
 def get_my_worlds():
-    current_user = get_user_from_request(request)
-    if not current_user:
-        return jsonify({"error": "인증되지 않은 사용자입니다."}), 401
+    current_user, user_jwt = get_user_and_token_from_request(request)
+    if not current_user or not user_jwt:
+        return jsonify({"error": "인증되지 않은 사용자이거나 토큰이 없습니다."}), 401
 
-    client = get_db_client()
+    client = get_db_client(user_jwt=user_jwt)
     if not client:
-        return jsonify({"error": "데이터베이스 연결에 실패했습니다."}), 500
+        print("Failed to get DB client for user for get_my_worlds.")
+        return jsonify({"error": "데이터베이스 사용자 세션 연결에 실패했습니다."}), 500
 
     try:
         user_id = str(current_user.id)
@@ -163,13 +166,14 @@ def get_my_worlds():
 
 @worlds_bp.route('/<uuid:world_id>', methods=['PUT'])
 def update_world(world_id):
-    current_user = get_user_from_request(request)
-    if not current_user:
-        return jsonify({"error": "인증되지 않은 사용자입니다."}), 401
+    current_user, user_jwt = get_user_and_token_from_request(request)
+    if not current_user or not user_jwt:
+        return jsonify({"error": "인증되지 않은 사용자이거나 토큰이 없습니다."}), 401
 
-    client = get_db_client()
+    client = get_db_client(user_jwt=user_jwt)
     if not client:
-        return jsonify({"error": "데이터베이스 연결에 실패했습니다."}), 500
+        print("Failed to get DB client for user for update_world.")
+        return jsonify({"error": "데이터베이스 사용자 세션 연결에 실패했습니다."}), 500
 
     data = request.get_json()
     if not data:
@@ -229,13 +233,14 @@ def update_world(world_id):
 
 @worlds_bp.route('/<uuid:world_id>', methods=['DELETE'])
 def delete_world(world_id):
-    current_user = get_user_from_request(request)
-    if not current_user:
-        return jsonify({"error": "인증되지 않은 사용자입니다."}), 401
+    current_user, user_jwt = get_user_and_token_from_request(request)
+    if not current_user or not user_jwt:
+        return jsonify({"error": "인증되지 않은 사용자이거나 토큰이 없습니다."}), 401
 
-    client = get_db_client()
+    client = get_db_client(user_jwt=user_jwt)
     if not client:
-        return jsonify({"error": "데이터베이스 연결에 실패했습니다."}), 500
+        print("Failed to get DB client for user for delete_world.")
+        return jsonify({"error": "데이터베이스 사용자 세션 연결에 실패했습니다."}), 500
 
     try:
         check_query = client.table("worlds").select("id, user_id").eq("id", str(world_id)).eq("user_id", str(current_user.id)).maybe_single().execute()

@@ -235,14 +235,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- 진행중인 모험 모달 관련 함수 끝 --- 
 
     if (typeof supabase !== 'undefined' && supabaseUrl && supabaseAnonKey) {
+        console.log("Supabase 초기화 시도. URL:", supabaseUrl, "Anon Key:", supabaseAnonKey);
         try {
             window.supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
             console.log("Supabase client initialized (main.js)");
         } catch (error) {
             console.error("Supabase client initialization failed (main.js):", error);
+            window.supabaseClient = null; // 초기화 실패 시 null로 명확히 설정
         }
     } else {
-        console.warn("Supabase global object or URL/Key not found (main.js).");
+        console.warn("Supabase global object or URL/Key not found for client initialization (main.js).");
     }
 
     function getSessionId() {
@@ -807,32 +809,87 @@ document.addEventListener('DOMContentLoaded', async () => {
         homeBtn.addEventListener('click', resetAndGoToWorldSelection);
     }
 
+    let isLoggingOut = false;
+
     if (logoutButton && window.supabaseClient) {
         logoutButton.addEventListener('click', async () => {
-            console.log("로그아웃 버튼 클릭됨");
+            console.log("로그아웃 버튼 클릭됨 - 이벤트 핸들러 진입");
+
+            if (isLoggingOut) {
+                console.warn("이미 로그아웃이 진행 중입니다.");
+                return;
+            }
+            isLoggingOut = true;
+
+            if (!window.supabaseClient || !window.supabaseClient.auth) {
+                console.error("Supabase 클라이언트 또는 auth 모듈이 없습니다.");
+                alert("로그아웃 기능 초기화 오류입니다.");
+                isLoggingOut = false;
+                return;
+            }
+            console.log("Supabase 클라이언트 및 auth 모듈 유효성 검사 통과.");
+
             try {
-                console.log("supabaseClient.auth.signOut() 호출 시도...");
-                const { error } = await window.supabaseClient.auth.signOut();
+                console.log("로그아웃 로직 try 블록 진입 시도...");
                 
-                if (error) {
-                    console.error("Supabase 로그아웃 오류:", error);
-                    alert(`로그아웃 중 오류 발생: ${error.message}`);
-                } else {
-                    console.log("Supabase 로그아웃 성공");
-                    window.currentUser = null;
-                    window.currentSession = null;
-                    sessionStorage.clear();
-                    storySessionId = null;
-                    currentWorldId = null;
-                    currentWorldTitle = null;
-                    await updateUserUI();
-                    if (window.location.pathname !== '/login') {
-                        window.location.href = '/login';
-                    }
+                if (typeof window.supabaseClient.auth.signOut !== 'function') {
+                    console.error("window.supabaseClient.auth.signOut is not a function!");
+                    alert("로그아웃 기능 구성 오류입니다. (signOut 부재)");
+                    isLoggingOut = false;
+                    return;
                 }
+                console.log("window.supabaseClient.auth.signOut은 함수입니다. 직접 호출 시도...");
+
+                const { error: signOutError } = await window.supabaseClient.auth.signOut();
+                console.log("supabaseClient.auth.signOut() 직접 호출 완료.");
+
+                if (signOutError) {
+                    console.error("Supabase 로그아웃 오류 (signOut 직접 호출 시):", signOutError);
+                    alert(`로그아웃 중 오류 발생: ${signOutError.message}`);
+                    // signOut 실패 시에도 UI 정리 시도
+                } else {
+                    console.log("Supabase 로그아웃 성공 (signOut 직접 호출 성공)");
+                }
+
+                // signOut 호출 후 세션 상태 확인 (선택적)
+                // console.log("로그아웃 후 세션 상태 확인 시도...");
+                // try {
+                //     const { data: { session: sessionAfterSignOut } } = await window.supabaseClient.auth.getSession();
+                //     console.log("로그아웃 후 세션:", sessionAfterSignOut);
+                // } catch (getSessionError) {
+                //     console.warn("로그아웃 후 세션 확인 중 오류:", getSessionError);
+                // }
+
+                // 공통 정리 로직
+                window.currentUser = null;
+                window.currentSession = null;
+                sessionStorage.clear();
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('sb-') || key.startsWith('supabase.')) {
+                        localStorage.removeItem(key);
+                    }
+                });
+                console.log("세션 및 로컬 스토리지 클리어 완료.");
+
+                storySessionId = null;
+                currentWorldId = null;
+                currentWorldTitle = null;
+                
+                await updateUserUI();
+                console.log("UI 업데이트 완료.");
+
+                if (window.location.pathname !== '/login') {
+                    console.log("로그인 페이지로 리디렉션 시도...");
+                    window.location.href = '/login';
+                } else {
+                    console.log("이미 로그인 페이지입니다.");
+                }
+
             } catch (e) {
-                console.error("supabaseClient.auth.signOut() 호출 중 예외:", e);
-                alert(`로그아웃 처리 중 예기치 않은 오류: ${e.message}`);
+                console.error("로그아웃 처리 중 예기치 않은 예외 발생:", e);
+                alert(`로그아웃 처리 중 예기치 않은 오류 발생: ${e.message}`);
+            } finally {
+                isLoggingOut = false;
             }
         });
     }

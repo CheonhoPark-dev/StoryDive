@@ -5,7 +5,7 @@ from flask import Blueprint, request, jsonify
 import traceback
 
 # Absolute imports from the 'backend' package perspective
-from backend.auth_utils import get_user_from_request
+from backend.auth_utils import get_user_and_token_from_request
 from backend.database import get_db_client
 
 adventure_bp = Blueprint('adventure_bp', __name__, url_prefix='/api/adventures')
@@ -15,16 +15,16 @@ adventure_bp = Blueprint('adventure_bp', __name__, url_prefix='/api/adventures')
 @adventure_bp.route('', methods=['GET'])
 def get_ongoing_adventures():
     print("Attempting to get ongoing adventures...")
-    current_user = get_user_from_request(request)
-    if not current_user:
-        print("User not authenticated.")
-        return jsonify({"error": "인증되지 않은 사용자입니다."}), 401
+    current_user, user_jwt = get_user_and_token_from_request(request)
+    if not current_user or not user_jwt:
+        print("User not authenticated or token missing.")
+        return jsonify({"error": "인증되지 않은 사용자이거나 토큰이 없습니다."}), 401
 
     print(f"Authenticated user: {current_user.id}")
-    client = get_db_client()
+    client = get_db_client(user_jwt=user_jwt)
     if not client:
-        print("Failed to get DB client.")
-        return jsonify({"error": "데이터베이스 연결에 실패했습니다."}), 500
+        print("Failed to get DB client for user.")
+        return jsonify({"error": "데이터베이스 사용자 세션 연결에 실패했습니다."}), 500
 
     try:
         user_id = str(current_user.id)
@@ -59,13 +59,14 @@ def get_ongoing_adventures():
 
 @adventure_bp.route('', methods=['POST'])
 def save_or_update_ongoing_adventure():
-    current_user = get_user_from_request(request)
-    if not current_user:
-        return jsonify({"error": "인증되지 않은 사용자입니다."}), 401
+    current_user, user_jwt = get_user_and_token_from_request(request)
+    if not current_user or not user_jwt:
+        return jsonify({"error": "인증되지 않은 사용자이거나 토큰이 없습니다."}), 401
 
-    client = get_db_client()
+    client = get_db_client(user_jwt=user_jwt)
     if not client:
-        return jsonify({"error": "데이터베이스 연결에 실패했습니다."}), 500
+        print("Failed to get DB client for user for save/update.")
+        return jsonify({"error": "데이터베이스 사용자 세션 연결에 실패했습니다."}), 500
 
     data = request.json
     session_id = data.get('session_id')
@@ -246,16 +247,17 @@ def save_or_update_ongoing_adventure():
 
 @adventure_bp.route('/<session_id>', methods=['DELETE'])
 def delete_ongoing_adventure(session_id):
-    current_user = get_user_from_request(request)
-    if not current_user:
-        return jsonify({"error": "인증되지 않은 사용자입니다."}), 401
+    current_user, user_jwt = get_user_and_token_from_request(request)
+    if not current_user or not user_jwt:
+        return jsonify({"error": "인증되지 않은 사용자이거나 토큰이 없습니다."}), 401
 
     if not session_id:
         return jsonify({"error": "세션 ID가 제공되지 않았습니다."}), 400
 
-    client = get_db_client()
+    client = get_db_client(user_jwt=user_jwt)
     if not client:
-        return jsonify({"error": "데이터베이스 연결에 실패했습니다."}), 500
+        print("Failed to get DB client for user for delete.")
+        return jsonify({"error": "데이터베이스 사용자 세션 연결에 실패했습니다."}), 500
 
     try:
         user_id = str(current_user.id)

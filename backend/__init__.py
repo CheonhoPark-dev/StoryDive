@@ -7,7 +7,11 @@ import os
 # 내부 모듈 임포트. 이 임포트들은 create_app 함수 내부 또는 외부에서 앱 컨텍셔스트를 고려하여 위치할 수 있습니다.
 # 예를 들어, config는 앱 생성 전에 로드될 수 있고, 블루프린트는 앱 객체가 생성된 후 등록됩니다.
 from .config import SUPABASE_URL, SUPABASE_KEY, FLASK_SECRET_KEY, GEMINI_API_KEY
-from .database import init_supabase_client, supabase_client as db_supabase_client # database.py에서 supabase_client도 가져옵니다.
+# supabase_client 대신 default_supabase_client를 사용하거나, get_db_client를 통해 접근하므로 직접적인 클라이언트 임포트는 불필요할 수 있음
+# init_supabase_client는 database.py 모듈 로드 시 자동으로 호출되도록 변경했으므로, 여기서 명시적 호출도 불필요.
+# from .database import init_supabase_client # init_supabase_client만 가져오거나, 아예 가져오지 않아도 됨.
+# 만약 init_supabase_client()를 create_app에서 명시적으로 호출하고 싶다면 임포트 유지.
+# 현재 database.py에서 init_supabase_client()가 모듈 레벨에서 호출되므로, 여기서는 호출 불필요.
 from .gemini_utils import DEFAULT_PROMPT_TEMPLATE # Gemini API 초기화는 gemini_utils에서 수행
 
 # Blueprint 임포트
@@ -49,8 +53,9 @@ def create_app():
 
     CORS(app)
 
-    # Supabase 클라이언트 초기화 (앱 컨텍스트와 무관하게 수행 가능)
-    init_supabase_client()
+    # Supabase 클라이언트 초기화 (database.py에서 모듈 로드 시 수행됨)
+    # init_supabase_client() # 여기서 호출 제거 또는 database.py에서 모듈 레벨 호출 제거 중 택1. 현재는 database.py에서 호출.
+    
     # Gemini API 키 설정 (gemini_utils에서 이미 수행됨, 여기서 별도 호출 필요 없음)
 
     # Blueprint 등록
