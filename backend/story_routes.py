@@ -150,7 +150,7 @@ def handle_action():
                 world_setting_text = world_data_from_db.get('setting', '')
                 user_defined_starting_point = world_data_from_db.get('starting_point')
                 world_title_for_response = world_data_from_db.get('title', "타이틀 없음")
-                actual_world_id_to_save = world_data_from_db.get('id') # 명시적으로 DB에서 받은 id 사용
+                actual_world_id_to_save = world_data_from_db.get('id')
                 world_systems = world_data_from_db.get('systems', [])
                 world_system_configs = world_data_from_db.get('system_configs', {})
 
@@ -159,17 +159,15 @@ def handle_action():
                         if system_name in world_system_configs and 'initial' in world_system_configs[system_name]:
                             current_active_systems[system_name] = world_system_configs[system_name]['initial']
                         else:
-                            # system_configs에 해당 system_name이 없거나, initial 값이 없는 경우 기본값 0으로 설정
                             logger.warning(f"System '{system_name}' not found in system_configs or missing 'initial' value. Defaulting to 0.")
                             current_active_systems[system_name] = 0 
-                elif world_systems: # world_systems는 있지만 world_system_configs가 비어있는 경우
+                elif world_systems:
                     logger.warning(f"world_system_configs is empty for world {world_key}. Initializing systems to 0.")
                     for system_name in world_systems:
                         current_active_systems[system_name] = 0
-                else: # world_systems 자체가 비어있는 경우
+                else:
                     logger.info(f"No systems defined for world {world_key}.")
-
-            else: # world_response.data가 없을 때 (세계를 찾지 못함)
+            else:
                 print(f"World with ID {world_key} not found in database.")
                 return jsonify({"error": f"선택한 세계관(ID: {world_key})을 찾을 수 없습니다."}), 404
             
@@ -177,34 +175,30 @@ def handle_action():
 
         except Exception as e:
             print(f"DB 세계관 조회 오류: {e}")
-            print(traceback.format_exc()) # 오류 스택 트레이스 추가
+            print(traceback.format_exc())
             return jsonify({"error": f"세계관(ID: {world_key}) 조회 중 오류 발생: {str(e)}"}), 500
         
         complete_initial_history = ""
         using_starting_point = bool(user_defined_starting_point and user_defined_starting_point.strip())
         print(f"[DEBUG starting_point] Condition check: user_defined_starting_point is not None and not empty? {using_starting_point}")
 
-        # 프롬프트에 전달할 시스템 목록 문자열 생성 (gemini 호출 직전)
         current_systems_list_for_prompt = ", ".join([f"{name} (현재값: {value})" for name, value in current_active_systems.items()]) if current_active_systems else "없음. 시스템 변경 지시를 내리지 마세요."
 
         try:
-            if using_starting_point: # 위에서 계산된 using_starting_point 사용
+            if using_starting_point:
                 newly_generated_story_segment = user_defined_starting_point.strip()
-                # START_WITH_USER_POINT_CHOICES_ONLY_PROMPT_TEMPLATE 사용 (선택지만 생성)
                 prompt_for_ai = START_WITH_USER_POINT_CHOICES_ONLY_PROMPT_TEMPLATE.format(
                     user_starting_point=newly_generated_story_segment
                 )
                 print(f"[DEBUG Gemini Call] Attempting to call Gemini for CHOICES ONLY. Session: {session_id}, Prompt: {prompt_for_ai[:200]}...")
-                # call_gemini_api는 (이야기, 선택지) 튜플을 반환. 여기서는 선택지만 필요.
                 _, choices_for_client = call_gemini_api(prompt_for_ai) 
                 complete_initial_history = (world_setting_text + "\n\n" + newly_generated_story_segment if world_setting_text else newly_generated_story_segment)
             else:
-                # START_WITH_USER_POINT_PROMPT_TEMPLATE 사용 (이야기와 선택지 모두 생성)
                 systems_status_for_prompt = "현재 활성화된 시스템: " + (", ".join([f"{name}({value})" for name, value in current_active_systems.items()]) if current_active_systems else "없음")
         
                 initial_prompt_for_gemini = START_WITH_USER_POINT_PROMPT_TEMPLATE.format(
                     world_setting=world_setting_text if world_setting_text else "특별한 설정 없음.",
-                    user_starting_point="모험이 지금 막 시작됩니다. 이 세계관에 어울리는 흥미로운 첫 장면을 묘사해주세요.", # AI에게 시작을 맡김
+                    user_starting_point="모험이 지금 막 시작됩니다. 이 세계관에 어울리는 흥미로운 첫 장면을 묘사해주세요.",
                     systems_status=systems_status_for_prompt
                 )
 
@@ -229,19 +223,17 @@ def handle_action():
             'active_systems': current_active_systems,
             'system_configs': world_system_configs
         }
-        print(f"[DEBUG Systems] current_active_systems for session {session_id}: {current_active_systems}") # 로깅 추가
-        # final_context_for_client = {"history": complete_initial_history} # 기존 코드
+        print(f"[DEBUG Systems] current_active_systems for session {session_id}: {current_active_systems}")
 
-        # start_new_adventure의 응답 데이터를 response_data에 할당
         response_data = {
-            'new_story_segment': newly_generated_story_segment, # 시작점이 있으면 해당 내용, 없으면 AI가 생성한 첫 단락
+            'new_story_segment': newly_generated_story_segment,
             'choices': choices_for_client,
-            'context': {'history': complete_initial_history}, # 전체 히스토리 (세계관 설정 + 시작점/AI생성 첫 단락)
+            'context': {'history': complete_initial_history},
             'active_systems': current_active_systems,
             'system_configs': world_system_configs,
-            'session_id': session_id, # 새로운 세션 ID
-            'world_id': actual_world_id_to_save, # 사용된 세계관 ID
-            'world_title': world_title_for_response # 사용된 세계관 제목
+            'session_id': session_id,
+            'world_id': actual_world_id_to_save,
+            'world_title': world_title_for_response
         }
 
     elif action_type == "continue_adventure":

@@ -1,5 +1,0 @@
-Flask
-Flask-CORS
-python-dotenv # .env 파일 로드용
-google-generativeai # (Gemini API 사용 시 필요) 주석 해제 
-supabase # Supabase 연동용 

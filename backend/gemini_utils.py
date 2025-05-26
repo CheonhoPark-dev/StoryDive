@@ -248,10 +248,10 @@ def call_gemini_api(prompt):
                                 current_temp_choices_list.append(choice_text)
                         elif collecting_story:
                             story_content_lines.append(line)
-                        # 선택지 수집 모드인데, 현재 라인이 선택지 패턴이 아니고, 짧은 텍스트라면 이전 선택지에 이어붙이기 시도
+                            # 선택지 수집 모드인데, 현재 라인이 선택지 패턴이 아니고, 짧은 텍스트라면 이전 선택지에 이어붙이기 시도
                         elif not collecting_story and current_temp_choices_list and not match and len(stripped_line) < 50: # 숫자 50은 임의의 값
                             current_temp_choices_list[-1] += " " + stripped_line
-                        # 선택지 수집 모드가 아니었으나, 선택지 리스트가 비어있고, 현재 라인이 선택지 패턴이면 -> 여기서부터 선택지 수집 시작 (엣지 케이스)
+                            # 선택지 수집 모드가 아니었으나, 선택지 리스트가 비어있고, 현재 라인이 선택지 패턴이면 -> 여기서부터 선택지 수집 시작 (엣지 케이스)
                         elif not collecting_story and not current_temp_choices_list and match: 
                             collecting_story = False
                             choice_text = match.group(1).replace("**", "").strip()
