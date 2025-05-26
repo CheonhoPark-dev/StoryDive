@@ -1,5 +1,5 @@
 import * as api from './api.js';
-import { initSidebar, toggleSidebar } from './sidebar.js';
+import { initSidebar, toggleSidebar, adjustModalPosition } from './sidebar.js';
 import { initTheme, toggleTheme } from './theme.js';
 
 // 전역 변수 또는 상태 관리 객체 (필요에 따라)
@@ -185,6 +185,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentWorldId = null;
     let storySessionId = null;
     let currentWorldTitle = null;
+    let isLoggingOut = false;
 
     // Supabase 클라이언트 (전역으로 설정하여 다른 모듈이나 함수에서 접근 가능하도록 함)
     window.supabaseClient = null;
@@ -1023,6 +1024,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (modalElement) {
             modalElement.classList.remove('hidden');
             console.log("[DEBUG openModal] Modal opened:", modalElement.id);
+            if (modalElement.id === 'ongoing-adventures-modal') { // 진행중인 모험 모달일 경우에만 위치 조정
+                adjustModalPosition(); // 모달 열 때 위치 조정 함수 호출
+            }
         } else { console.error("[DEBUG openModal] Attempted to open a null modal element."); }
     }
 
