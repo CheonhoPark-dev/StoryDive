@@ -1,0 +1,76 @@
+{% extends "layout.html" %}
+
+{% block title %}새 세계관 만들기 - 스토리 다이브{% endblock %}
+
+{% block page_header %}새로운 세계관 창조하기{% endblock %}
+
+{% block content %}
+<div id="create-world-form-container" class="content-card p-8 rounded-xl shadow-lg mb-8 md:col-span-2 lg:col-span-3 card-hover">
+    <h3 class="text-2xl font-semibold mb-6 text-header text-center gradient-text">새로운 세계관 정보 입력</h3>
+    <form id="create-world-form" class="space-y-6">
+        <div>
+            <label for="world-title" class="block text-sm font-medium text-subheader mb-1">세계관 제목 <span class="text-red-500">*</span></label>
+            <input type="text" id="world-title" name="title" required
+                   class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                   placeholder="예: 마법 고양이들의 비밀 학교">
+        </div>
+        <div>
+            <label for="world-setting" class="block text-sm font-medium text-subheader mb-1">세계관 상세 설정 <span class="text-red-500">*</span></label>
+            <textarea id="world-setting" name="setting" rows="6" required
+                      class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                      placeholder="이 세계관의 배경, 주요 규칙, 분위기 등을 자세히 설명해주세요..."></textarea>
+        </div>
+        <div class="flex items-center">
+            <input type="checkbox" id="world-is-public" name="is_public"
+                   class="h-5 w-5 text-indigo-600 border-gray-600 rounded focus:ring-indigo-500 mr-2 bg-gray-700">
+            <label for="world-is-public" class="text-sm font-medium text-subheader">다른 사용자에게 공개하기</label>
+        </div>
+        <div>
+            <label for="world-genre" class="block text-sm font-medium text-subheader mb-1">장르</label>
+            <input type="text" id="world-genre" name="genre"
+                   class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                   placeholder="예: 판타지, SF, 미스터리 (선택 사항)">
+        </div>
+        <div>
+            <label for="world-tags" class="block text-sm font-medium text-subheader mb-1">태그 (쉼표로 구분)</label>
+            <input type="text" id="world-tags" name="tags"
+                   class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                   placeholder="예: 마법, 학원물, 동물, 비밀 (선택 사항)">
+        </div>
+        <div>
+            <label for="world-cover-image-url" class="block text-sm font-medium text-subheader mb-1">커버 이미지 URL</label>
+            <input type="url" id="world-cover-image-url" name="cover_image_url"
+                   class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                   placeholder="세계관을 나타내는 이미지 주소 (선택 사항)">
+        </div>
+
+        <!-- 게임 시스템 설정 섹션 -->
+        <div class="mb-6 p-4 border border-gray-700 rounded-lg">
+            <h4 class="text-lg font-medium text-subheader mb-3">게임 시스템 설정 (선택 사항)</h4>
+            <div id="create-world-systems-container" class="space-y-4">
+                <p class="text-sm text-gray-500">아직 추가된 시스템이 없습니다. "시스템 추가" 버튼을 눌러 캐릭터 스탯, 재화, 포인트 등을 설정하세요.</p>
+            </div>
+            <button type="button" id="create-add-world-system-btn"
+                    class="mt-4 btn-secondary text-white px-4 py-2 rounded-md text-sm font-medium transition hover:bg-teal-600 btn-glow">
+                <i class="fas fa-plus mr-1"></i> 시스템 추가
+            </button>
+        </div>
+
+        <div>
+            <label for="world-starting-point" class="block text-sm font-medium text-subheader mb-1">이야기 시작점 (선택 사항)</label>
+            <textarea id="world-starting-point" name="starting_point" rows="4"
+                      class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                      placeholder="모험이 시작될 첫 장면이나 상황을 직접 설정할 수 있습니다. 비워두면 AI가 세계관 설정에 따라 생성합니다."></textarea>
+        </div>
+        <div class="flex justify-end space-x-3">
+            <button type="button" id="cancel-create-world-btn" class="btn-gray text-white px-6 py-3 rounded-lg font-medium transition">
+                취소
+            </button>
+            <button type="submit" id="submit-create-world-btn" class="btn-primary text-white px-6 py-3 rounded-lg font-medium transition flex items-center justify-center btn-glow">
+                <i class="fas fa-save mr-2"></i>세계관 저장하기
+            </button>
+        </div>
+    </form>
+    <div id="create-world-feedback" class="mt-4 text-sm text-content"></div>
+</div>
+{% endblock %} 

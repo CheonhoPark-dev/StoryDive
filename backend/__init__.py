@@ -1,5 +1,5 @@
 print("--- backend/__init__.py 로드됨 ---")
-from flask import Flask, render_template
+from flask import Flask, render_template, request, jsonify, session, url_for
 from flask_cors import CORS
 from supabase import create_client, Client
 import os
@@ -12,6 +12,7 @@ from .config import SUPABASE_URL, SUPABASE_KEY, FLASK_SECRET_KEY, GEMINI_API_KEY
 # 만약 init_supabase_client()를 create_app에서 명시적으로 호출하고 싶다면 임포트 유지.
 # 현재 database.py에서 init_supabase_client()가 모듈 레벨에서 호출되므로, 여기서는 호출 불필요.
 from .gemini_utils import DEFAULT_PROMPT_TEMPLATE # Gemini API 초기화는 gemini_utils에서 수행
+from .auth_utils import get_user_and_token_from_request, get_current_user_id_from_request # auth_utils 함수 임포트
 
 # Blueprint 임포트
 from .story_routes import story_bp
@@ -22,6 +23,7 @@ from .adventure_routes import adventure_bp # 새 블루프린트 임포트
 
 def create_app():
     print("--- create_app 함수 호출됨 (backend/__init__.py) ---")
+    print(f"[DEBUG __init__.py] FLASK_SECRET_KEY from config before app creation: {FLASK_SECRET_KEY}") # config에서 가져온 값 확인
     app = Flask(__name__, template_folder='../../templates', static_folder='../../static')
     # template_folder와 static_folder 경로가 __init__.py 위치 기준으로 변경됨
     # backend 폴더에서 한 단계 위로, 다시 한 단계 위로 올라가 templates/static을 찾습니다.
@@ -52,12 +54,19 @@ def create_app():
     app.template_folder = '../templates'
     app.static_folder = '../static'
 
-    CORS(app)
+    CORS(app, supports_credentials=True)
 
     # Supabase 클라이언트 초기화 (database.py에서 모듈 로드 시 수행됨)
     # init_supabase_client() # 여기서 호출 제거 또는 database.py에서 모듈 레벨 호출 제거 중 택1. 현재는 database.py에서 호출.
     
     # Gemini API 키 설정 (gemini_utils에서 이미 수행됨, 여기서 별도 호출 필요 없음)
+
+    app.secret_key = FLASK_SECRET_KEY # config.py에서 가져온 값을 사용 (여기서는 None일 수 있음)
+    if not app.secret_key: # FLASK_SECRET_KEY가 None이거나 빈 문자열이었다면
+        print("CRITICAL ERROR (__init__.py): FLASK_SECRET_KEY from config was None or empty. Using a hardcoded fallback for app.secret_key.")
+        app.secret_key = "a_super_secret_hardcoded_key_for_emergency_only_09876^&%$"
+    else:
+        print(f"[DEBUG __init__.py] app.secret_key was set using FLASK_SECRET_KEY from config. Value (first 10 chars): {str(app.secret_key)[:10]}...")
 
     # Blueprint 등록
     app.register_blueprint(story_bp)
@@ -79,10 +88,61 @@ def create_app():
 
     @app.route('/login')
     def login_page():
+        next_url = request.args.get('next') # 요청 파라미터에서 next 값을 가져옴
+        print(f"[DEBUG login_page] next_url from request.args: {next_url}")
         return render_template(
             'login.html', 
             supabase_url=SUPABASE_URL, 
-            supabase_anon_key=SUPABASE_KEY
+            supabase_anon_key=SUPABASE_KEY,
+            next_url=next_url  # next_url을 템플릿에 전달
         )
+
+    @app.route('/auth/session-login', methods=['POST'])
+    def session_login():
+        data = request.get_json()
+        access_token = data.get('access_token')
+        refresh_token = data.get('refresh_token')
+        next_url_from_client = data.get('next_url') # 클라이언트가 next_url을 보냈는지 확인
+        print(f"[DEBUG session_login] next_url_from_client: {next_url_from_client}")
+
+        if not access_token:
+            return jsonify({"error": "Access token is required"}), 400
+        
+        from jose import jwt as jose_jwt, JWTError as jose_JWTError
+        # SUPABASE_JWT_SECRET을 config에서 직접 가져옴 (FLASK_SECRET_KEY와 별개)
+        from .config import SUPABASE_JWT_SECRET as APP_SUPABASE_JWT_SECRET 
+        
+        user_id_from_token = None
+        if APP_SUPABASE_JWT_SECRET:
+            try:
+                payload = jose_jwt.decode(access_token, APP_SUPABASE_JWT_SECRET, algorithms=["HS256"], audience="authenticated")
+                user_id_from_token = payload.get("sub")
+            except jose_JWTError as e:
+                print(f"Flask session_login: JWT decode error: {e}")
+                return jsonify({"error": "Invalid or expired token"}), 401
+        else:
+            print("Flask session_login: Server SUPABASE_JWT_SECRET not configured for decoding.")
+            return jsonify({"error": "Server JWT secret for token decoding not configured"}), 500
+        
+        if user_id_from_token:
+            session['user_id'] = user_id_from_token
+            session['access_token'] = access_token
+            if refresh_token:
+                session['refresh_token'] = refresh_token
+            print(f"Flask session created for user_id: {user_id_from_token}")
+            
+            redirect_url = next_url_from_client or url_for('home') # next_url이 있으면 그곳으로, 없으면 홈으로
+            print(f"[DEBUG session_login] Determined redirect_url: {redirect_url}")
+            return jsonify({"message": "Flask session created successfully", "user_id": user_id_from_token, "redirect_url": redirect_url}), 200
+        else:
+            return jsonify({"error": "Failed to establish session, user ID not found in token"}), 401
+            
+    @app.route('/auth/logout', methods=['POST'])
+    def session_logout():
+        session.pop('user_id', None)
+        session.pop('access_token', None)
+        session.pop('refresh_token', None)
+        print("Flask session cleared.")
+        return jsonify({"message": "Flask session cleared successfully"}), 200
 
     return app 

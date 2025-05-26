@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+
+{% block title %}내 세계관 목록 - 스토리 다이브{% endblock %}
+
+{% block page_header %}내가 만든 세계관{% endblock %}
+
+{% block content %}
+<div id="my-worlds-section" class="content-card p-6 rounded-xl md:col-span-2 lg:col-span-3 card-hover">
+    <h3 class="text-xl font-semibold mb-4 text-header flex items-center">
+        <i class="fas fa-user-circle mr-2 text-indigo-400"></i>
+        내가 만든 세계관
+    </h3>
+    <div id="my-worlds-feedback" class="text-sm mb-2"></div>
+    <div id="my-worlds-list" class="space-y-3">
+        <p id="my-worlds-loading-msg" class="text-content">
+            내 세계관 목록을 불러오는 중<span class="loading-dots"></span>
+        </p>
+    </div>
+</div>
+
+<!-- 세계관 수정 폼은 my_worlds.html에 포함하지 않고, 별도의 edit_world.html로 분리하거나 my_worlds.html 내에 숨겨둘 수 있습니다. -->
+<!-- 우선 여기서는 수정 폼을 포함하지 않고, 목록만 표시합니다. -->
+<!-- 필요하다면, openWorldEditForm 함수가 /edit-world/<world_id> 와 같은 URL로 이동시키도록 변경해야 합니다. -->
+{% endblock %}
+
+{# {% block extra_scripts %} ... 스크립트 내용 전체 삭제 ... {% endblock %} #} 

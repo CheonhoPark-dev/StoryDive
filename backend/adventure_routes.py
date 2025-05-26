@@ -13,29 +13,31 @@ adventure_bp = Blueprint('adventure_bp', __name__, url_prefix='/api/adventures')
 
 @adventure_bp.route('', methods=['GET'])
 def get_ongoing_adventures():
-    print("Attempting to get ongoing adventures...")
+    print("[DEBUG adventure_routes] Attempting to get ongoing adventures...")
     current_user, user_jwt = get_user_and_token_from_request(request)
     if not current_user or not user_jwt:
-        print("User not authenticated or token missing.")
+        print("[DEBUG adventure_routes] User not authenticated or token missing.")
         return jsonify({"error": "인증되지 않은 사용자이거나 토큰이 없습니다."}), 401
 
-    print(f"Authenticated user: {current_user.id}")
-
+    user_id = str(current_user.id)
+    print(f"[DEBUG adventure_routes] Authenticated user: {user_id}")
+    print(f"[DEBUG adventure_routes] Fetching adventures for user_id: {user_id} using get_all_ongoing_adventures.")
+    
     try:
-        user_id = str(current_user.id)
-        print(f"Fetching adventures for user_id: {user_id}")
-        
+        # user_jwt를 get_all_ongoing_adventures 함수에 전달합니다.
         adventures_data = get_all_ongoing_adventures(user_id=user_id, user_jwt=user_jwt)
         
-        if adventures_data is not None:
-            print(f"Successfully fetched adventures data: {adventures_data}")
+        print(f"[DEBUG adventure_routes] Raw adventures_data from DB function: {adventures_data}")
+
+        if adventures_data is not None: # 함수가 None을 반환하는 경우도 처리
+            print(f"[DEBUG adventure_routes] Successfully fetched adventures data. Count: {len(adventures_data) if isinstance(adventures_data, list) else 'N/A'}")
             return jsonify(adventures_data), 200
         else:
-            print(f"Failed to fetch adventures for user_id: {user_id}")
-            return jsonify({"error": "진행 중인 모험 목록을 가져오는데 실패했습니다."}), 500
+            print(f"[DEBUG adventure_routes] get_all_ongoing_adventures returned None for user_id: {user_id}")
+            return jsonify({"error": "진행 중인 모험 목록을 가져오는데 실패했습니다 (데이터 없음)."}), 500 # 또는 404
 
     except Exception as e:
-        print(f"Exception in get_ongoing_adventures: {str(e)}")
+        print(f"[DEBUG adventure_routes] Exception in get_ongoing_adventures: {str(e)}")
         print(traceback.format_exc())
         return jsonify({"error": f"서버 내부 오류: {str(e)}"}), 500
 
@@ -88,13 +90,20 @@ def get_adventure_endpoint(session_id):
 
 @adventure_bp.route('/<session_id>', methods=['DELETE'])
 def delete_adventure_endpoint(session_id):
+    print(f"[DEBUG delete_adventure_endpoint] Received DELETE request for session_id: {session_id}")
     current_user, user_jwt = get_user_and_token_from_request(request)
     if not current_user or not user_jwt:
+        print("[DEBUG delete_adventure_endpoint] User not authenticated.")
         return jsonify({"error": "Not authenticated"}), 401
 
     user_id = str(current_user.id)
+    print(f"[DEBUG delete_adventure_endpoint] Attempting to delete adventure for user_id: {user_id}, session_id: {session_id}")
     success = delete_ongoing_adventure(session_id=session_id, user_id=user_id, user_jwt=user_jwt)
+    
     if success:
+        print(f"[DEBUG delete_adventure_endpoint] Successfully deleted adventure for session_id: {session_id}")
         return jsonify({"message": "Adventure deleted successfully", "session_id": session_id, "user_id": user_id}), 200
     else:
+        # delete_ongoing_adventure 함수 내부에서 이미 실패 원인이 로깅될 것으로 예상
+        print(f"[DEBUG delete_adventure_endpoint] Failed to delete adventure for session_id: {session_id}")
         return jsonify({"error": "Failed to delete adventure or adventure not found"}), 500

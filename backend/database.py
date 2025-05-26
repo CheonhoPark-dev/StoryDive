@@ -219,15 +219,16 @@ def save_story_to_db(session_id: str, story_content: str,
 # ongoing_adventures 테이블 관련 함수들
 
 def save_ongoing_adventure(adventure_data: dict, user_jwt: str | None = None) -> bool:
+    print(f"[DEBUG save_ongoing_adventure] Called with adventure_data: {adventure_data}") # 함수 호출 및 데이터 확인 로그
     client = get_db_client(user_jwt=user_jwt)
     if not client:
-        print("DB 저장 실패 (ongoing_adventures): 클라이언트 없음")
+        print("[DEBUG save_ongoing_adventure] DB 저장 실패: 클라이언트 없음")
         return False
 
     required_fields = ['session_id', 'user_id', 'world_id']
     for field in required_fields:
         if field not in adventure_data or not adventure_data[field]:
-            print(f"DB 저장 실패 (ongoing_adventures): 필수 필드 '{field}' 누락 또는 비어있음")
+            print(f"[DEBUG save_ongoing_adventure] DB 저장 실패: 필수 필드 '{field}' 누락 또는 비어있음. Data: {adventure_data}")
             return False
     
     try:
@@ -241,22 +242,33 @@ def save_ongoing_adventure(adventure_data: dict, user_jwt: str | None = None) ->
             'last_choices': adventure_data.get('last_choices'),
             'active_systems': adventure_data.get('active_systems', {}),
             'system_configs': adventure_data.get('system_configs', {}),
-            'updated_at': 'now()'
+            'summary': adventure_data.get('summary'), # summary 필드 추가 (main.js에서 보내는 것으로 보임)
+            'updated_at': 'now()' # updated_at은 자동 갱신되도록 설정하는 것이 좋으나, 명시적 설정도 가능
         }
+        print(f"[DEBUG save_ongoing_adventure] Data to upsert: {data_to_save}")
         
         response = client.table('ongoing_adventures') \
                          .upsert(data_to_save, on_conflict='session_id') \
                          .execute()
 
+        print(f"[DEBUG save_ongoing_adventure] Supabase upsert response: {response}") # Supabase 응답 전체 로깅
+
         if hasattr(response, 'error') and response.error:
-            print(f"DB 저장/업데이트 실패 (ongoing_adventures): {response.error.message if hasattr(response.error, 'message') else response.error}")
+            print(f"[DEBUG save_ongoing_adventure] DB 저장/업데이트 실패: {response.error.message if hasattr(response.error, 'message') else response.error}")
             return False
         
-        print(f"DB 저장/업데이트 성공 (ongoing_adventures): session_id={adventure_data['session_id']}")
-        return True
+        # Supabase upsert는 성공 시 보통 data 필드에 삽입/수정된 레코드를 반환합니다.
+        # response.data가 비어있더라도 오류가 없으면 성공으로 간주할 수 있습니다 (특히 count가 없는 경우).
+        if (hasattr(response, 'data') and response.data) or not (hasattr(response, 'error') and response.error):
+            print(f"[DEBUG save_ongoing_adventure] DB 저장/업데이트 성공: session_id={adventure_data['session_id']}")
+            return True
+        else:
+            # 이 경우는 예상치 못한 응답이므로 로그를 남깁니다.
+            print(f"[DEBUG save_ongoing_adventure] DB 저장/업데이트 실패 (예상치 못한 응답). Response: {response}")
+            return False
 
     except Exception as e:
-        print(f"DB에 ongoing_adventure 저장/업데이트 중 심각한 오류: {e}")
+        print(f"[DEBUG save_ongoing_adventure] DB에 ongoing_adventure 저장/업데이트 중 심각한 오류: {e}")
         import traceback
         print(traceback.format_exc())
         return False
@@ -301,25 +313,42 @@ def get_all_ongoing_adventures(user_id: str, user_jwt: str | None = None) -> lis
         return None
 
 def delete_ongoing_adventure(session_id: str, user_id: str, user_jwt: str | None = None) -> bool:
+    print(f"[DEBUG delete_ongoing_adventure] Called with session_id: {session_id}, user_id: {user_id}") # 함수 호출 및 파라미터 확인 로그
     client = get_db_client(user_jwt=user_jwt)
     if not client or not session_id or not user_id:
-        print(f"DB 삭제 실패 (ongoing_adventure): 클라이언트({client is not None}), session_id({session_id is not None}), user_id({user_id is not None}) 누락")
+        print(f"[DEBUG delete_ongoing_adventure] DB 삭제 실패: 클라이언트({client is not None}), session_id({session_id is not None}), user_id({user_id is not None}) 누락")
         return False
     try:
+        # count='exact'를 사용하여 삭제된 레코드 수를 확인합니다.
         response = client.table('ongoing_adventures') \
-                         .delete() \
+                         .delete(count='exact') \
                          .eq('session_id', session_id) \
                          .eq('user_id', user_id) \
                          .execute()
         
+        print(f"[DEBUG delete_ongoing_adventure] Supabase delete response: {response}") # Supabase 응답 전체 로깅
+
         if hasattr(response, 'error') and response.error:
-            # Supabase는 삭제 대상이 없어도 오류를 반환하지 않을 수 있음 (count 등으로 확인 필요 시 추가)
-            print(f"DB 삭제 실패 (ongoing_adventure): {response.error.message if hasattr(response.error, 'message') else response.error}")
+            print(f"[DEBUG delete_ongoing_adventure] DB 삭제 실패 (API 오류): {response.error.message if hasattr(response.error, 'message') else response.error}")
             return False
         
-        # 삭제 성공 여부는 count 등을 통해 더 명확히 할 수 있으나, 일단 오류 없으면 성공으로 간주
-        print(f"DB 삭제 성공 또는 대상 없음 (ongoing_adventure): session_id={session_id}")
-        return True
+        # 삭제 성공 여부 확인 (count가 있고 0보다 큰 경우)
+        if hasattr(response, 'count') and response.count is not None:
+            if response.count > 0:
+                print(f"[DEBUG delete_ongoing_adventure] DB 삭제 성공: {response.count}개 레코드 삭제 (session_id={session_id}, user_id={user_id})")
+                return True
+            else:
+                print(f"[DEBUG delete_ongoing_adventure] DB 삭제 대상 없음 (0개 레코드 삭제됨): session_id={session_id}, user_id={user_id}")
+                return True # 대상이 없어도 실패는 아님
+        elif hasattr(response, 'data') and not response.data: # count가 없고 data가 비어있는 경우 (이전 버전 Supabase 호환성)
+             print(f"[DEBUG delete_ongoing_adventure] DB 삭제 성공 또는 대상 없음 (데이터 없음, 오류 없음): session_id={session_id}, user_id={user_id}")
+             return True
+        else: # 예상치 못한 응답
+            print(f"[DEBUG delete_ongoing_adventure] DB 삭제 실패 (예상치 못한 응답). Response: {response}")
+            return False
+
     except Exception as e:
-        print(f"DB에서 ongoing_adventure 삭제 중 오류: {e}")
+        print(f"[DEBUG delete_ongoing_adventure] DB에서 ongoing_adventure 삭제 중 심각한 오류: {e}")
+        import traceback
+        print(traceback.format_exc())
         return False 

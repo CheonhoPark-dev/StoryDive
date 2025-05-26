@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const googleLoginButton = document.getElementById('google-login-btn');
     const authErrorMessage = document.getElementById('auth-error-message');
+    const nextUrlFromDataAttribute = document.body.dataset.nextUrl || '/';
 
     let supabaseClient = null;
 
@@ -19,42 +20,61 @@ document.addEventListener('DOMContentLoaded', () => {
         if (googleLoginButton) googleLoginButton.disabled = true;
     }
 
-    // 현재 사용자가 이미 로그인되어 있는지 확인 (예: 뒤로가기 등으로 이 페이지에 다시 온 경우)
-    // 또는 로그인 성공 후 리디렉션되기 전에 authStateChange가 먼저 발생할 수 있음
     if (supabaseClient) {
-        supabaseClient.auth.onAuthStateChange((event, session) => {
+        supabaseClient.auth.onAuthStateChange(async (event, session) => {
             console.log("Login.js Auth event:", event, "Session:", session);
-            if (session && session.user) {
-                console.log("사용자 세션 감지됨, 메인 페이지로 리디렉션합니다.");
-                window.location.href = '/'; // 로그인 성공 시 메인 페이지로 이동
+            if (event === 'SIGNED_IN' && session && session.user) {
+                console.log("사용자 로그인 성공 (SIGNED_IN), Flask 세션 설정 시도...");
+                try {
+                    const response = await fetch('/auth/session-login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ 
+                            access_token: session.access_token,
+                            refresh_token: session.refresh_token,
+                            next_url: nextUrlFromDataAttribute
+                        }),
+                    });
+                    const result = await response.json();
+                    if (response.ok && result.user_id) {
+                        console.log("Flask 세션 설정 성공, 리디렉션합니다.", result);
+                        window.location.href = result.redirect_url || '/';
+                    } else {
+                        console.error("Flask 세션 설정 실패:", result);
+                        if (authErrorMessage) authErrorMessage.textContent = `세션 설정 오류: ${result.error || '알 수 없는 오류'}`;
+                    }
+                } catch (e) {
+                    console.error("Flask 세션 설정 API 호출 중 오류:", e);
+                    if (authErrorMessage) authErrorMessage.textContent = "세션 설정 중 통신 오류가 발생했습니다.";
+                }
+            } else if (event === 'SIGNED_OUT') {
+                console.log("사용자 로그아웃 감지 (login.js)");
             }
         });
     }
 
     if (googleLoginButton && supabaseClient) {
         googleLoginButton.addEventListener('click', async () => {
-            if (authErrorMessage) authErrorMessage.textContent = ''; // 이전 오류 메시지 지우기
+            if (authErrorMessage) authErrorMessage.textContent = '';
             try {
-                const { data, error } = await supabaseClient.auth.signInWithOAuth({
+                const { error } = await supabaseClient.auth.signInWithOAuth({
                     provider: 'google',
                     options: {
-                      redirectTo: window.location.origin 
+                        redirectTo: window.location.origin
                     }
                 });
-
                 if (error) {
                     console.error("Google 로그인 시도 중 오류:", error);
                     if (authErrorMessage) authErrorMessage.textContent = `로그인 오류: ${error.message}`;
                 }
-                // 성공 시 onAuthStateChange가 감지하여 리디렉션함
-                // console.log("Google 로그인 요청 결과:", data);
-
             } catch (err) {
                 console.error("signInWithOAuth 호출 중 예외:", err);
-                if (authErrorMessage) authErrorMessage.textContent = "로그인 과정에서 예상치 못한 오류가 발생했습니다.";
+                if (authErrorMessage) authErrorMessage.textContent = `로그인 과정 중 예상치 못한 오류: ${err.message || '알 수 없는 오류'}`;
             }
         });
     }
 
-    console.log("login.js 로드 완료");
+    console.log("login.js 로드 완료 및 이벤트 리스너 설정됨");
 }); 

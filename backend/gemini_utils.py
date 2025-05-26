@@ -111,7 +111,7 @@ def summarize_story_with_gemini(story_text_to_summarize, target_char_length=800)
         return truncated_text + "... (중요: 이야기의 앞부분이 생략되었거나 요약되지 않았습니다. Gemini API 키를 확인하세요.)"
 
     model = genai.GenerativeModel('gemini-1.5-flash-latest')
-    prompt = SUMMARIZE_PROMPT_TEMPLATE.format(story_text=story_text_to_summarize, max_length=target_char_length)
+    prompt = SUMMARIZE_PROMPT_TEMPLATE.format(story_history=story_text_to_summarize)
     
     estimated_tokens_for_summary = min(int(target_char_length * 1.5), 2048)
 

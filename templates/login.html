@@ -98,7 +98,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center animated-bg relative overflow-hidden">
+<body class="min-h-screen flex items-center justify-center animated-bg relative overflow-hidden" {% if next_url %}data-next-url="{{ next_url }}"{% endif %}>
     <!-- 파티클 효과 -->
     <div class="particle" style="left: 10%; animation-delay: 0s;"></div>
     <div class="particle" style="left: 20%; animation-delay: 2s;"></div>
@@ -159,7 +159,6 @@
     </div>
 
     <script>
-        // Supabase 설정값을 JavaScript로 전달 (Flask 템플릿 통해)
         var supabaseUrl = "{{ supabase_url }}";
         var supabaseAnonKey = "{{ supabase_anon_key }}";
     </script>

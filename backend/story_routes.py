@@ -1,7 +1,7 @@
 """
 Routes for story progression (handling actions, loading stories).
 """
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify, session, render_template
 import uuid
 import traceback
 import re # 정규식 사용을 위해 추가

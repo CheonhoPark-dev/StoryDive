@@ -2,6 +2,7 @@ const API_BASE_URL = '/api';
 
 async function fetchAPI(endpoint, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
+    console.log(`[DEBUG fetchAPI] Requesting: ${options.method || 'GET'} ${url}`); // 요청 정보 로그
     const headers = {
         'Content-Type': 'application/json',
         ...options.headers,
@@ -12,18 +13,40 @@ async function fetchAPI(endpoint, options = {}) {
     // 리팩토링 과정에서 개선 필요 (예: api 함수 호출 시 토큰을 인자로 받거나, auth 모듈에서 토큰을 제공하는 함수 사용)
     if (window.supabaseClient && window.currentSession && window.currentSession.access_token) {
         headers['Authorization'] = `Bearer ${window.currentSession.access_token}`;
+        console.log("[DEBUG fetchAPI] Authorization header added.");
+    } else {
+        console.warn("[DEBUG fetchAPI] Authorization header NOT added. No session or token.");
     }
 
     try {
         const response = await fetch(url, { ...options, headers });
-        const data = await response.json();
+        console.log(`[DEBUG fetchAPI] Response status for ${url}: ${response.status}`); // 응답 상태 로그
+        
+        // DELETE 요청의 경우 응답 본문이 비어있거나 JSON이 아닐 수 있음
+        if (options.method === 'DELETE' && response.status === 200) { // 성공적인 DELETE (200 OK 또는 204 No Content)
+            // 성공 시 보통 빈 응답이거나, 메시지를 담은 JSON일 수 있음
+            // 여기서는 response.ok 만으로도 성공 판단 가능, data 파싱은 선택적
+            try {
+                const data = await response.json();
+                console.log(`[DEBUG fetchAPI] Response data for DELETE ${url}:`, data);
+                return data; // JSON 응답이 있다면 반환
+            } catch (e) {
+                console.log(`[DEBUG fetchAPI] No JSON body for DELETE ${url}, but status is OK.`);
+                return { message: "Successfully deleted." }; // 혹은 빈 객체 반환
+            }
+        }
+        
+        const data = await response.json(); // DELETE가 아닌 경우 또는 DELETE 실패 시 JSON 파싱 시도
+        console.log(`[DEBUG fetchAPI] Response data for ${url}:`, data); // 응답 데이터 로그
+
         if (!response.ok) {
-            throw new Error(data.error || `HTTP error ${response.status}`);
+            console.error(`[DEBUG fetchAPI] API Error for ${url}. Status: ${response.status}, Data:`, data);
+            throw new Error(data.error || data.message || `HTTP error ${response.status}`);
         }
         return data;
     } catch (error) {
-        console.error(`API call to ${url} failed:`, error);
-        throw error; // 오류를 다시 던져서 호출한 쪽에서 처리할 수 있도록 함
+        console.error(`[DEBUG fetchAPI] API call to ${url} failed overall:`, error);
+        throw error;
     }
 }
 
@@ -52,9 +75,17 @@ export async function updateWorld(worldId, worldData) {
 }
 
 export async function deleteWorld(worldId) {
-    return fetchAPI(`/worlds/${worldId}`, {
-        method: 'DELETE',
-    });
+    console.log(`[DEBUG api.js deleteWorld] Attempting to delete world with ID: ${worldId}`);
+    try {
+        const result = await fetchAPI(`/worlds/${worldId}`, {
+            method: 'DELETE',
+        });
+        console.log(`[DEBUG api.js deleteWorld] Successfully deleted world ID: ${worldId}, Result:`, result);
+        return result;
+    } catch (error) {
+        console.error(`[DEBUG api.js deleteWorld] Failed to delete world ID: ${worldId}`, error);
+        throw error;
+    }
 }
 
 // --- Adventure (Story) APIs ---
