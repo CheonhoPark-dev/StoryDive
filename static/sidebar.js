@@ -22,7 +22,6 @@ export function initSidebar(sidebar, mainContent, mobileToggle, desktopToggle) {
 
     applyInitialSidebarState();
     // 초기에는 오버레이 클릭 리스너를 붙이지 않음 (사이드바가 열릴 때 붙임)
-    removeOverlayClickListener(); 
 }
 
 // 현재 화면 크기에 따라 어떤 토글 버튼과 아이콘을 사용할지 결정

@@ -3,4 +3,5 @@ Flask-CORS
 python-dotenv
 google-generativeai
 supabase
-gunicorn 
+gunicorn
+python-jose[cryptography] 

@@ -4,7 +4,7 @@ Authentication utilities, including JWT validation.
 from flask import request as current_request # Flask의 request 객체를 사용하기 위해 import
 # from supabase import Client as SupabaseClient # 타입 힌팅용이었으나 직접 사용 안 함
 from backend.database import get_db_client # get_db_client 함수를 직접 임포트
-from fastapi import Request
+# from fastapi import Request # FastAPI 의존성 제거
 from jose import jwt, JWTError, ExpiredSignatureError
 from .config import SUPABASE_JWT_SECRET # SUPABASE_JWT_SECRET를 config.py에서 가져옵니다.
 
@@ -34,7 +34,7 @@ def get_user_and_token_from_request(request_obj) -> tuple[dict | None, str | Non
 # 혹은 Supabase 클라이언트 초기화 시 자동으로 설정될 수도 있음. 명시적으로 지정하는 것이 안전.
 JWT_AUDIENCE = "authenticated" 
 
-def get_current_user_id_from_request(request: Request) -> str | None:
+def get_current_user_id_from_request(request: current_request) -> str | None: # 타입 힌트를 Flask의 request로 변경
     """
     Extracts user ID from the Authorization header's JWT token.
     Placeholder for actual JWT validation and user ID extraction.

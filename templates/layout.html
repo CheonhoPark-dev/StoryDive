@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}스토리 다이브 - AI 인터랙티브 스토리텔링{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #0f0f1e; /* 더 깊은 다크 배경 */
+            color: #e5e7eb;
+        }
+        
+        /* 그라디언트 텍스트 */
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* 카드 호버 효과 */
+        .card-hover {
+            transition: all 0.3s ease;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+            border-color: rgba(99, 102, 241, 0.5);
+        }
+        
+        /* 글로우 버튼 */
+        .btn-glow {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-glow::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn-glow:hover::before {
+            left: 100%;
+        }
+        
+        .btn-glow:hover {
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+        }
+        
+        /* 스크롤바 스타일 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+        
+        .story-text {
+            white-space: pre-wrap;
+            line-height: 1.8;
+        }
+        
+        .choice-btn {
+            transition: all 0.2s ease;
+            transform: scale(1);
+            background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+        
+        .choice-btn:hover {
+            transform: scale(1.02);
+            background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+            border-color: rgba(99, 102, 241, 0.6);
+            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.3);
+        }
+        
+        .choice-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 사이드바 스타일 */
+        .sidebar {
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+            width: 16rem;
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 1000;
+            transition: transform 0.3s ease-in-out, width 0.3s ease-in-out;
+        }
+
+        .sidebar.closed {
+            transform: translateX(-100%);
+        }
+        .sidebar.closed .sidebar-text {
+            display: none;
+        }
+        .sidebar.closed .sidebar-user-email {
+            display: none;
+        }
+        .sidebar.closed .sidebar-logo-text {
+            display: none;
+        }
+        .sidebar.closed .sidebar-logo-text-group {
+            display: none;
+        }
+        .sidebar.closed .sidebar-item-container {
+            justify-content: center;
+            min-height: 3.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .sidebar-header-area {
+            display: flex;
+            align-items: center;
+            padding-bottom: 1rem;
+        }
+
+        .sidebar.closed .sidebar-header-area {
+            flex-direction: column;
+            padding-bottom: 0.5rem;
+        }
+
+        .sidebar:not(.closed) #sidebar-toggle-btn { /* 데스크탑에서 열렸을 때 사이드바 내부 토글 버튼 */
+            margin-right: 0.5rem;
+        }
+
+        .sidebar.closed #sidebar-toggle-btn { /* 데스크탑에서 닫혔을 때 사이드바 내부 토글 버튼 */
+            margin-bottom: 0;
+        }
+
+        .sidebar-logo-and-title {
+            display: flex;
+            align-items: center;
+        }
+        
+        .sidebar-logo-and-title .sidebar-logo-icon {
+            margin-right: 0.5rem;
+        }
+
+        .sidebar.closed .sidebar-logo-and-title .sidebar-logo-icon {
+            margin-right: 0;
+        }
+
+        /* 메인 콘텐츠 영역 스타일 */
+        .main-content {
+            background-color: #0f0f1e;
+            transition: margin-left 0.3s ease-in-out;
+        }
+        /* 데스크탑 스타일은 아래 미디어쿼리에서 구체적으로 정의 */
+
+        .content-card {
+            background: linear-gradient(135deg, #1f2937 0%, #2d3748 100%);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .content-card:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+        
+        .input-field {
+            background-color: #2d3748;
+            border: 1px solid #4a5568;
+            color: #e5e7eb;
+            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        
+        .input-field:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.4);
+            outline: none;
+        }
+        
+        .input-field::placeholder {
+            color: #9ca3af;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(99, 102, 241, 0.4);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(16, 185, 129, 0.4);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(239, 68, 68, 0.4);
+        }
+        
+        .btn-gray {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+        }
+        .btn-gray:hover {
+            background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+            transform: translateY(-2px);
+        }
+        
+        .text-header {
+            color: #f3f4f6;
+        }
+        .text-subheader {
+            color: #d1d5db;
+        }
+        .text-content {
+            color: #e5e7eb;
+        }
+
+        /* 네비게이션 아이템 호버 효과 */
+        .sidebar button { /* 사이드바 내의 모든 버튼에 적용될 수 있으므로, 필요시 특정 클래스로 제한 */
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .sidebar button.sidebar-item-container::after { /* sidebar-item-container 클래스를 가진 버튼에만 적용 */
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .sidebar button.sidebar-item-container:hover::after {
+            transform: scaleY(1);
+        }
+
+        /* 세계관 카드 애니메이션 */
+        .world-card {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1f2937 0%, #2d3748 100%);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .world-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .world-card:hover::before {
+            opacity: 1;
+        }
+        
+        .world-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+            border-color: rgba(99, 102, 241, 0.5);
+        }
+
+        /* 로딩 애니메이션 */
+        .loading-dots {
+            display: inline-block;
+        }
+        
+        .loading-dots::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+        
+        @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
+
+        /* --- Light Mode Styles --- */
+        body.light-mode {
+            background-color: #f9fafb;
+            color: #1f2937;
+        }
+
+        body.light-mode .sidebar {
+            background: linear-gradient(180deg, #ffffff 0%, #f3f4f6 100%);
+            border-right: 1px solid #e5e7eb;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+        }
+
+        body.light-mode .sidebar .sidebar-logo-text-group span:first-child {
+            color: #111827;
+        }
+        body.light-mode .sidebar .sidebar-logo-text-group span:last-child {
+            color: #6366f1;
+        }
+        body.light-mode .sidebar .sidebar-logo-icon {
+            color: #6366f1;
+        }
+
+        body.light-mode .sidebar .text-gray-300 {
+            color: #374151;
+        }
+        body.light-mode .sidebar .hover\:bg-gray-700:hover {
+            background-color: #f3f4f6;
+        }
+        body.light-mode .sidebar .hover\:text-white:hover {
+            color: #111827;
+        }
+        body.light-mode .sidebar .border-gray-700 {
+            border-color: #e5e7eb;
+        }
+        body.light-mode .sidebar #user-email-display-sidebar {
+            color: #374151;
+        }
+        body.light-mode .sidebar .fa-user-circle {
+            color: #6b7280;
+        }
+
+        body.light-mode .main-content {
+            background-color: #f9fafb;
+        }
+
+        body.light-mode .main-content header {
+            background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        body.light-mode .main-content header #main-content-header.text-header {
+            color: #111827;
+        }
+
+        body.light-mode .content-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+            border-color: #e5e7eb;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        body.light-mode .world-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+            border-color: #e5e7eb;
+        }
+
+        body.light-mode .text-header {
+            color: #111827;
+        }
+        body.light-mode .text-subheader {
+            color: #4b5563;
+        }
+        body.light-mode .text-content {
+            color: #374151;
+        }
+        body.light-mode p.text-gray-400 {
+            color: #6b7280;
+        }
+
+        body.light-mode .input-field {
+            background-color: #ffffff;
+            border-color: #d1d5db;
+            color: #111827;
+        }
+        body.light-mode .input-field:focus {
+            background-color: #f9fafb;
+            border-color: #6366f1;
+        }
+        body.light-mode .input-field::placeholder {
+            color: #9ca3af;
+        }
+
+        body.light-mode .choice-btn {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            border-color: #6366f1;
+            color: #111827;
+        }
+        
+        body.light-mode .choice-btn:hover {
+            background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+        }
+
+        body.light-mode #ongoing-adventures-modal .bg-gray-800 {
+            background-color: #ffffff;
+        }
+        body.light-mode #ongoing-adventures-modal .text-white {
+            color: #111827;
+        }
+        body.light-mode #ongoing-adventures-modal .text-gray-400 {
+            color: #6b7280;
+        }
+        body.light-mode #ongoing-adventures-modal .hover\:text-white:hover {
+             color: #111827;
+        }
+        body.light-mode #ongoing-adventures-modal .bg-gray-700 {
+            background-color: #f3f4f6;
+        }
+        body.light-mode #ongoing-adventures-modal .hover\:bg-gray-600:hover {
+            background-color: #e5e7eb;
+        }
+        body.light-mode #ongoing-adventures-modal .text-indigo-400 {
+            color: #6366f1; 
+        }
+        body.light-mode #ongoing-adventures-modal .text-gray-300 {
+            color: #374151;
+        }
+        body.light-mode #ongoing-adventures-modal .text-gray-500 {
+            color: #6b7280;
+        }
+
+        /* 추가/수정: 모바일 화면 대응 */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 80%;
+                max-width: 280px;
+            }
+
+            .sidebar:not(.closed) {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0 !important;
+                transition: none;
+            }
+            
+            #main-content-header {
+                padding-left: 0; 
+            }
+
+            body.sidebar-open-mobile::before {
+                content: "";
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 999;
+                opacity: 1;
+                transition: opacity 0.3s ease-in-out;
+            }
+            body:not(.sidebar-open-mobile)::before {
+                opacity: 0;
+                pointer-events: none;
+            }
+        }
+
+        /* 데스크탑 화면 (769px 이상) */
+        @media (min-width: 769px) {
+            .sidebar {
+                transform: translateX(0);
+            }
+            .sidebar.closed {
+                width: 4.5rem; /* Desktop closed width */
+                transform: translateX(0);
+            }
+            .main-content:not(.sidebar-closed) {
+                margin-left: 16rem; /* Desktop open margin */
+            }
+            .main-content.sidebar-closed {
+                margin-left: 4.5rem; /* Desktop closed margin */
+            }
+        }
+
+        /* 모바일 오버레이 스타일 추가 */
+        body.sidebar-open-mobile::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* 반투명 검은색 배경 */
+            z-index: 999; /* 사이드바(1000)보다 낮고, 다른 콘텐츠보다는 높게 */
+            opacity: 1;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        body.sidebar-open-mobile.sidebar-closed::before { /* 사이드바 닫힐 때 오버레이 숨김 */
+            opacity: 0;
+            pointer-events: none; /* 클릭 이벤트 방지 */
+        }
+        /* 모바일 오버레이 스타일 끝 */
+
+        /* 페이지별 추가 스타일 */
+        {% block extra_styles %}{% endblock %}
+    </style>
+</head>
+<body class="flex h-screen font-sans leading-normal tracking-normal">
+
+    <!-- 왼쪽 사이드바 -->
+    <aside id="sidebar" class="sidebar w-64 p-4 flex flex-col fixed top-0 left-0 h-full">
+        <!-- 상단 헤더 영역: 토글 버튼 + 로고/타이틀 -->
+        <div class="sidebar-header-area mb-1">
+            <!-- 이 버튼은 데스크탑에서 사이드바 내부에 있는 토글 버튼으로 사용. 모바일에선 숨김. -->
+            <button id="sidebar-toggle-btn" class="hidden md:flex text-gray-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 p-2 rounded-md sidebar-item-container transition-all duration-200">
+                <i id="sidebar-toggle-icon" class="fas fa-bars fa-lg"></i>
+            </button>
+            <div class="sidebar-logo-and-title sidebar-item-container">
+                <i class="fas fa-feather-alt text-2xl text-indigo-400 sidebar-logo-icon"></i>
+                <div class="sidebar-logo-text-group">
+                    <span class="text-xl font-bold text-white">스토리</span><span class="text-xl font-bold gradient-text">다이브</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="space-y-2 flex-grow">
+            <button id="home-btn" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-3 rounded-md text-base font-medium transition sidebar-item-container">
+                <i class="fas fa-home fa-fw fa-lg"></i>
+                <span class="sidebar-text">홈 (세계관 선택)</span>
+            </button>
+            <button id="show-create-world-form-btn-sidebar" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-3 rounded-md text-base font-medium transition sidebar-item-container">
+                <i class="fas fa-plus-circle fa-fw fa-lg"></i>
+                <span class="sidebar-text">새 세계관 만들기</span>
+            </button>
+            <button id="show-my-worlds-btn-sidebar" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-3 rounded-md text-base font-medium transition sidebar-item-container">
+                <i class="fas fa-list fa-fw fa-lg"></i>
+                <span class="sidebar-text">내 세계관 목록</span>
+            </button>
+            <button id="continue-adventure-btn-sidebar" class="w-full flex items-center space-x-3 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-3 rounded-md text-base font-medium transition sidebar-item-container">
+                <i class="fas fa-play-circle fa-fw fa-lg"></i>
+                <span class="sidebar-text">진행중인 모험</span>
+            </button>
+        </nav>
+        
+        <div id="user-info-sidebar" class="mt-auto pt-4 border-t border-gray-700">
+            <p class="text-sm text-gray-400 sidebar-text">로그인 정보:</p>
+            <p id="user-email-display-sidebar" class="text-sm font-medium sidebar-user-email truncate" title=""></p>
+        </div>
+
+        <button id="theme-toggle-btn" class="sidebar-item-container flex items-center w-full mt-2 p-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-all duration-200">
+            <i id="theme-toggle-icon" class="fas fa-sun w-5 h-5 mr-3"></i>
+            <span class="sidebar-text" id="theme-toggle-text">라이트 모드</span>
+        </button>
+
+        <button id="logout-btn-sidebar" class="sidebar-item-container flex items-center w-full mt-2 p-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-all duration-200">
+            <i class="fas fa-sign-out-alt w-5 h-5 mr-3"></i>
+            <span class="sidebar-text">로그아웃</span>
+        </button>
+    </aside>
+
+    <!-- 메인 콘텐츠 영역 -->
+    <div id="main-content-area" class="main-content flex-1 flex flex-col">
+        <!-- 상단 바 -->
+        <header class="bg-gray-800 shadow-md p-4 sticky top-0 z-10 flex items-center backdrop-blur-sm bg-opacity-90">
+            <div class="container mx-auto flex items-center">
+                <!-- 모바일 화면용 사이드바 토글 버튼 (배너 내부) -->
+                <button id="mobile-header-sidebar-toggle-btn" class="md:hidden mr-3 p-2 text-gray-300 hover:text-white focus:outline-none rounded-md">
+                    <i class="fas fa-bars fa-lg"></i>
+                </button>
+                <h2 id="main-content-header" class="text-xl font-semibold text-header">{% block page_header %}공개 세계관 탐색{% endblock %}</h2>
+            </div>
+        </header>
+
+        <!-- 실제 콘텐츠 -->
+        <main class="flex-1 p-6 overflow-y-auto">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- 진행중인 모험 목록 모달 -->
+    <div id="ongoing-adventures-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-semibold text-white gradient-text">진행중인 모험</h3>
+                <button id="close-ongoing-adventures-modal-btn" class="text-gray-400 hover:text-white text-2xl transition-colors">
+                    &times;
+                </button>
+            </div>
+            <div id="ongoing-adventures-list-container" class="overflow-y-auto space-y-3 pr-2">
+                <!-- 모험 목록이 여기에 동적으로 추가됩니다 -->
+            </div>
+            <p id="no-ongoing-adventures-msg" class="text-gray-400 text-center py-4 hidden">진행중인 모험이 없습니다.</p>
+        </div>
+    </div>
+
+    <script>
+        // Supabase 설정값을 JavaScript로 전달
+        var supabaseUrl = "{{ supabase_url }}";
+        var supabaseAnonKey = "{{ supabase_anon_key }}";
+    </script>
+    <script type="module" src="{{ url_for('static', filename='main.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html> 
