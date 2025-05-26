@@ -159,7 +159,16 @@ def handle_action():
                         if system_name in world_system_configs and 'initial' in world_system_configs[system_name]:
                             current_active_systems[system_name] = world_system_configs[system_name]['initial']
                         else:
-                            current_active_systems[system_name] = 0 # 기본값 또는 오류 처리
+                            # system_configs에 해당 system_name이 없거나, initial 값이 없는 경우 기본값 0으로 설정
+                            logger.warning(f"System '{system_name}' not found in system_configs or missing 'initial' value. Defaulting to 0.")
+                            current_active_systems[system_name] = 0 
+                elif world_systems: # world_systems는 있지만 world_system_configs가 비어있는 경우
+                    logger.warning(f"world_system_configs is empty for world {world_key}. Initializing systems to 0.")
+                    for system_name in world_systems:
+                        current_active_systems[system_name] = 0
+                else: # world_systems 자체가 비어있는 경우
+                     logger.info(f"No systems defined for world {world_key}.")
+
             else: # world_response.data가 없을 때 (세계를 찾지 못함)
                 print(f"World with ID {world_key} not found in database.")
                 return jsonify({"error": f"선택한 세계관(ID: {world_key})을 찾을 수 없습니다."}), 404

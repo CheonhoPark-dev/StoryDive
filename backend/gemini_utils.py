@@ -200,72 +200,124 @@ def call_gemini_api(prompt):
             
                 story_part_candidate = re.sub(r"^(이야기|Story):\s*", "", story_part_candidate, flags=re.IGNORECASE).strip()
 
-            if choices_section_text_candidate: 
-                potential_lines = choices_section_text_candidate.split('\n')
-                current_choice_text = ""
-                for line in potential_lines:
-                    stripped_line = line.strip()
-                    if not stripped_line: continue
-                    choice_prefix_match = re.match(r"^(?:[-*•✓✔※◦]|[가-힣]\.|[a-zA-Z]\.|\d+\.)\s+", stripped_line)
-                    text_to_add = stripped_line
-                    is_new_choice_line = False
-                    if choice_prefix_match:
-                        text_to_add = stripped_line[choice_prefix_match.end():].strip()
-                        is_new_choice_line = True
+                if choices_section_text_candidate: 
+                    potential_lines = choices_section_text_candidate.split('\n')
+                    current_choice_text = ""
+                    for line in potential_lines:
+                        stripped_line = line.strip()
+                        if not stripped_line: continue
+                        choice_prefix_match = re.match(r"^(?:[-*•✓✔※◦]|[가-힣]\.|[a-zA-Z]\.|\d+\.)\s+", stripped_line)
+                        text_to_add = stripped_line
+                        is_new_choice_line = False
+                        if choice_prefix_match:
+                            text_to_add = stripped_line[choice_prefix_match.end():].strip()
+                            is_new_choice_line = True
                         
-                    if is_new_choice_line:
-                        if current_choice_text: 
-                            current_temp_choices_list.append(current_choice_text.strip())
-                        current_choice_text = text_to_add
-                    elif current_choice_text: 
-                        current_choice_text += " " + text_to_add 
-                    elif text_to_add:
-                        current_choice_text = text_to_add
-                if current_choice_text:
-                    current_temp_choices_list.append(current_choice_text.strip())
+                        if is_new_choice_line:
+                            if current_choice_text: 
+                                current_temp_choices_list.append(current_choice_text.strip())
+                            current_choice_text = text_to_add
+                        elif current_choice_text: 
+                            current_choice_text += " " + text_to_add 
+                        elif text_to_add:
+                            current_choice_text = text_to_add
+                    if current_choice_text:
+                        current_temp_choices_list.append(current_choice_text.strip())
             
-            elif not current_temp_choices_list:
-                lines = story_part_candidate.split('\n') 
-                story_content_lines = []
-                choice_pattern = r"^(?:[-*•✓✔※◦]|[가-힣]\.|[a-zA-Z]\.|\d+\.)\s+(.+)"
-                collecting_story = True
-                story_keywords = ["이야기:", "상황:", "갑자기", "그때", "그리고", "하지만"] 
+                elif not current_temp_choices_list: # choices_marker가 있었지만 choices_section_text_candidate가 비어있을 경우, story_part_candidate에서 직접 추출 시도
+                    lines = story_part_candidate.split('\n') 
+                    story_content_lines = []
+                    choice_pattern = r"^(?:[-*•✓✔※◦]|[가-힣]\.|[a-zA-Z]\.|\d+\.)\s+(.+)"
+                    collecting_story = True
+                    # story_keywords는 AI가 선택지를 이야기 중간에 생성하는 경우를 대비해 좀 더 보수적으로 사용하거나, 다른 로직과 결합 필요
+                    story_keywords = ["이야기:", "상황:", "갑자기", "그때", "그리고", "하지만"] 
 
-                for i, line in enumerate(lines):
+                    for i, line in enumerate(lines):
+                        stripped_line = line.strip()
+                        if not stripped_line: continue
+
+                        # 선택지처럼 보이면서, 이야기 핵심 키워드가 없고, 너무 길지 않은 라인
+                        # 또는 이미 선택지를 수집 중일 때
+                        is_likely_story = any(keyword in stripped_line for keyword in story_keywords) or len(stripped_line) > 80
+                        match = re.match(choice_pattern, stripped_line)
+
+                        if match and (not is_likely_story or len(current_temp_choices_list) > 0) and len(current_temp_choices_list) < 4:
+                            collecting_story = False # 일단 선택지 수집 모드로 전환
+                            choice_text = match.group(1).replace("**", "").strip()
+                            if choice_text and len(choice_text) > 2 : # 너무 짧은 선택지는 제외
+                                current_temp_choices_list.append(choice_text)
+                        elif collecting_story:
+                            story_content_lines.append(line)
+                        # 선택지 수집 모드인데, 현재 라인이 선택지 패턴이 아니고, 짧은 텍스트라면 이전 선택지에 이어붙이기 시도
+                        elif not collecting_story and current_temp_choices_list and not match and len(stripped_line) < 50: # 숫자 50은 임의의 값
+                            current_temp_choices_list[-1] += " " + stripped_line
+                        # 선택지 수집 모드가 아니었으나, 선택지 리스트가 비어있고, 현재 라인이 선택지 패턴이면 -> 여기서부터 선택지 수집 시작 (엣지 케이스)
+                        elif not collecting_story and not current_temp_choices_list and match: 
+                            collecting_story = False
+                            choice_text = match.group(1).replace("**", "").strip()
+                            if choice_text and len(choice_text) > 2:
+                                current_temp_choices_list.append(choice_text)
+                    
+                    if collecting_story or not current_temp_choices_list: # 선택지를 못 찾았으면 story_part_candidate 전체가 이야기
+                        story_part = story_part_candidate
+                    else: # 선택지를 찾았으면 분리
+                        story_part = "\n".join(story_content_lines).strip()
+                        choices_list_text = current_temp_choices_list # choices_list_text에 할당
+            
+            # choices_marker가 없는 경우, 전체 generated_text에서 선택지 파싱 시도 (위의 로직과 유사하게)
+            else: # if not choices_marker:
+                lines = generated_text.split('\n')
+                story_content_lines = []
+                current_choice_text_alt = "" # 대체 선택지 파싱용
+                choice_pattern_alt = r"^(?:[-*•✓✔※◦]|[가-힣]\.|[a-zA-Z]\.|\d+\.)\s+(.+)"
+                collecting_story_alt = True
+                story_keywords_alt = ["이야기:", "상황:", "갑자기", "그때", "그리고", "하지만", "결국", "문득"]
+
+                for line in lines:
                     stripped_line = line.strip()
                     if not stripped_line: continue
+                    
+                    is_likely_story_alt = any(keyword.lower() in stripped_line.lower() for keyword in story_keywords_alt) or len(stripped_line) > 70 # 길이 기준 완화
+                    match_alt = re.match(choice_pattern_alt, stripped_line)
 
-                    is_likely_story = any(keyword in stripped_line for keyword in story_keywords) or len(stripped_line) > 80
-                    match = re.match(choice_pattern, stripped_line)
+                    if match_alt and (not is_likely_story_alt or len(current_temp_choices_list) > 0) and len(current_temp_choices_list) < 4:
+                        collecting_story_alt = False
+                        if current_choice_text_alt: # 이전까지 모은 텍스트가 있다면 선택지로 추가
+                           current_temp_choices_list.append(current_choice_text_alt.strip())
+                        current_choice_text_alt = match_alt.group(1).replace("**", "").strip() # 새 선택지 텍스트 시작
+                    elif not collecting_story_alt and current_choice_text_alt: # 선택지 수집 중이고, 현재 라인이 패턴에 안 맞으면 이어붙이기
+                        if not match_alt and len(stripped_line) < 60 : # 너무 길지 않으면 이어붙임
+                             current_choice_text_alt += " " + stripped_line
+                        elif match_alt : # 새로운 선택지 시작으로 판단되면 이전것 저장하고 새것 시작
+                            current_temp_choices_list.append(current_choice_text_alt.strip())
+                            current_choice_text_alt = match_alt.group(1).replace("**", "").strip()
+                        else: # 선택지 중간에 너무 긴 문장이 오면, 이전 선택지까지 저장하고 이야기로 전환
+                            current_temp_choices_list.append(current_choice_text_alt.strip())
+                            current_choice_text_alt = ""
+                            collecting_story_alt = True
+                            story_content_lines.append(line)
 
-                    if match and (not is_likely_story or len(current_temp_choices_list) > 0) and len(current_temp_choices_list) < 4:
-                        collecting_story = False
-                        choice_text = match.group(1).replace("**", "").strip()
-                        if choice_text and len(choice_text) > 2 :
-                            current_temp_choices_list.append(choice_text)
-                    elif collecting_story:
+                    elif collecting_story_alt:
                         story_content_lines.append(line)
-                    elif not collecting_story and current_temp_choices_list and not match and len(stripped_line) < 50:
-                        current_temp_choices_list[-1] += " " + stripped_line
-                    elif not collecting_story and not current_temp_choices_list and match: 
-                        collecting_story = False
-                        choice_text = match.group(1).replace("**", "").strip()
-                        if choice_text and len(choice_text) > 2:
-                            current_temp_choices_list.append(choice_text)
                 
-                if collecting_story or not current_temp_choices_list:
-                    story_part = story_part_candidate
+                if current_choice_text_alt: # 마지막으로 수집된 선택지 텍스트가 있다면 추가
+                    current_temp_choices_list.append(current_choice_text_alt.strip())
+
+                if not current_temp_choices_list: # 선택지를 못 찾았으면 전체가 이야기
+                    story_part = generated_text
                 else:
                     story_part = "\n".join(story_content_lines).strip()
-                    choices_list_text = current_temp_choices_list
-            
-            if not choices_list_text and current_temp_choices_list:
+                    choices_list_text = current_temp_choices_list # choices_list_text에 할당
+
+            # 공통 로직: story_part 와 choices_list_text 최종 정리
+            if not choices_list_text and current_temp_choices_list: # current_temp_choices_list에 뭔가 있다면 그걸 사용
                 choices_list_text = current_temp_choices_list
             
-            if not story_part and story_part_candidate and choices_list_text:
+            if not story_part.strip() and story_part_candidate.strip() and choices_list_text: # story_part가 비었는데 candidate가 있고 선택지가 있다면 candidate를 스토리로
                 story_part = story_part_candidate
-            elif not story_part and not choices_list_text:
+            elif not story_part.strip() and not choices_list_text and generated_text.strip(): # 둘 다 비었고 원본 텍스트가 있으면 그걸 스토리로
                 story_part = generated_text
+
 
             final_choices_for_this_attempt = [choice for choice in choices_list_text if choice and len(choice.strip()) > 2]
             seen = set()
@@ -274,16 +326,16 @@ def call_gemini_api(prompt):
             if len(final_choices_for_this_attempt) >= 2:
                 print(f"성공 (시도 {attempts}): {len(final_choices_for_this_attempt)}개의 선택지 생성됨.")
                 parsed_choices = [{"id": f"choice_{i+1}", "text": choice_text} for i, choice_text in enumerate(final_choices_for_this_attempt)]
-                if not story_part.strip() and generated_text:
+                if not story_part.strip() and generated_text: # story_part가 비었으면 generated_text 사용
                     story_part = generated_text
                 return story_part.strip(), parsed_choices
             else:
                 print(f"경고 (시도 {attempts}): {len(final_choices_for_this_attempt)}개의 선택지만 생성됨. (내용: '{final_choices_for_this_attempt}')")
-                if not story_part and generated_text: story_part = generated_text
+                if not story_part.strip() and generated_text: story_part = generated_text # 이야기가 없다면 원본 텍스트 사용
 
                 if attempts == max_retries:
                     print(f"최대 재시도 ({max_retries}) 후에도 선택지가 2개 미만입니다. 현재 확보된 내용으로 반환합니다.")
-                    if not story_part and generated_text: story_part = generated_text 
+                    if not story_part.strip() and generated_text: story_part = generated_text 
                     
                     current_choices = [{"id": f"choice_{i+1}", "text": choice_text} for i, choice_text in enumerate(final_choices_for_this_attempt)]
                     if len(current_choices) == 0:
@@ -300,7 +352,7 @@ def call_gemini_api(prompt):
             import traceback
             traceback.print_exc()
             if attempts == max_retries:
-                error_story = story_part if story_part else "이야기 생성 중 API 오류가 발생하여 내용을 가져올 수 없었습니다."
+                error_story = story_part if story_part.strip() else "이야기 생성 중 API 오류가 발생하여 내용을 가져올 수 없었습니다."
                 error_choices = [
                     {"id": "error_api_1", "text": "알겠습니다. (오류)"},
                     {"id": "error_api_2", "text": "새 게임 시작하기"},
@@ -308,30 +360,48 @@ def call_gemini_api(prompt):
                 return error_story, error_choices
                 
     # 모든 재시도 실패 (루프 정상 종료, 보통 선택지 부족)
-    final_story_part = story_part if story_part else "이야기 생성에 실패했습니다. 여러 번 시도했지만 이야기나 선택지를 충분히 만들지 못했습니다."
-    if not final_story_part and 'generated_text' in locals() and generated_text:
+    final_story_part = story_part if story_part.strip() else "이야기 생성에 실패했습니다. 여러 번 시도했지만 이야기나 선택지를 충분히 만들지 못했습니다."
+    if not final_story_part.strip() and 'generated_text' in locals() and generated_text.strip():
         final_story_part = generated_text
 
     final_parsed_choices = []
-    if choices_list_text:
-        final_parsed_choices = [{"id": f"final_choice_{i+1}", "text": choice_text} for i, choice_text in enumerate(choices_list_text)]
+    if choices_list_text: # 재시도 루프에서 나온 choices_list_text 사용
+        # 중복 제거 및 빈 선택지 제거
+        seen_retry_choices = set()
+        valid_retry_choices = []
+        for choice_text in choices_list_text:
+            ct_strip = choice_text.strip()
+            if ct_strip and len(ct_strip) > 1 and ct_strip not in seen_retry_choices:
+                valid_retry_choices.append(ct_strip)
+                seen_retry_choices.add(ct_strip)
+        
+        final_parsed_choices = [{"id": f"final_choice_{i+1}", "text": choice_text} for i, choice_text in enumerate(valid_retry_choices)]
+        
         if len(final_parsed_choices) < 2:
-            final_parsed_choices.append({"id": "final_fallback_plus_1", "text": "다른 행동을 고려한다."})
-            if len(final_parsed_choices) < 2: 
+            if not any(fc['text'] == "다른 행동을 고려한다." for fc in final_parsed_choices):
+                final_parsed_choices.append({"id": "final_fallback_plus_1", "text": "다른 행동을 고려한다."})
+            if len(final_parsed_choices) < 2 and not any(fc['text'] == "상황을 다시 본다." for fc in final_parsed_choices):
                 final_parsed_choices.append({"id": "final_fallback_plus_2", "text": "상황을 다시 본다."})
-    else:
+    else: # choices_list_text 가 비어있으면 기본 폴백
         final_parsed_choices = [
             {"id": "final_error_empty_1", "text": "계속하기 (내용 없음)"},
             {"id": "final_error_empty_2", "text": "처음부터 다시 시작"}
         ]
     
+    # 최종 선택지 개수 보정 및 중복 제거
     seen_final = set()
-    final_parsed_choices = [x for x in final_parsed_choices if not (x['text'] in seen_final or seen_final.add(x['text']))]
+    final_parsed_choices_unique = []
+    for choice_obj in final_parsed_choices:
+        if choice_obj['text'] not in seen_final:
+            final_parsed_choices_unique.append(choice_obj)
+            seen_final.add(choice_obj['text'])
+    final_parsed_choices = final_parsed_choices_unique
+
     while len(final_parsed_choices) < 2:
         unique_fallback_text = f"추가 선택지 {len(final_parsed_choices) + 1}"
-        if not any(fc['text'] == unique_fallback_text for fc in final_parsed_choices):
+        if not any(fc['text'] == unique_fallback_text for fc in final_parsed_choices): # 텍스트 자체로 중복 체크
             final_parsed_choices.append({"id": f"final_fallback_extra_{len(final_parsed_choices)}", "text": unique_fallback_text})
-        else:
+        else: # 무한 루프 방지
             break
 
     print(f"최종 반환 (루프 종료 후): 이야기 '{final_story_part[:50]}...', 선택지 ({len(final_parsed_choices)}개): {final_parsed_choices}")

@@ -172,8 +172,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 사이드바 및 토글 버튼 추가
     const sidebar = document.getElementById('sidebar');
     const mainContentArea = document.getElementById('main-content-area');
-    const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
-    const sidebarToggleIcon = document.getElementById('sidebar-toggle-icon'); // 토글 버튼 내부 아이콘
+    // 데스크탑용 사이드바 토글 버튼 (사이드바 내부에 위치)
+    const desktopSidebarToggleBtn = document.getElementById('sidebar-toggle-btn'); 
+    // 모바일용 사이드바 토글 버튼 (메인 헤더 내부에 위치)
+    const mobileHeaderSidebarToggleBtn = document.getElementById('mobile-header-sidebar-toggle-btn');
 
     // "진행중인 모험" 버튼 DOM 요소 추가
     const continueAdventureBtnSidebar = document.getElementById('continue-adventure-btn-sidebar');
@@ -490,6 +492,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
+            // 테마 감지 로직 수정: body에 'light-mode' 클래스가 없으면 다크 모드로 간주
+            const isDarkMode = !document.body.classList.contains('light-mode');
+            
+            console.log(
+                "[displayStory] Theme check - isDarkMode (based on body.light-mode):", isDarkMode, 
+                "| Body classList:", document.body.classList.toString()
+            );
+
+            const dialogColorClass = isDarkMode ? 'text-gray-100' : 'text-gray-800';
+            const narrationColorClass = isDarkMode ? 'text-sky-400' : 'text-sky-700';
+            
+            console.log(
+                "[displayStory] Chosen color classes - Dialog:", dialogColorClass, 
+                "| Narration:", narrationColorClass
+            );
+
             let processedHtml = '';
             const segments = text.split(/(\".*?\")/g).filter(segment => segment && segment.trim() !== '');
             console.log("[displayStory] Segments:", segments);
@@ -499,10 +517,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 if (segment.startsWith('"') && segment.endsWith('"')) {
                     console.log("[displayStory] Applying dialog style to:", segmentWithBreaks);
-                    processedHtml += `<span class="text-gray-100">${segmentWithBreaks}</span>`;
+                    processedHtml += `<span class="${dialogColorClass}">${segmentWithBreaks}</span>`;
                 } else {
                     console.log("[displayStory] Applying narration style to:", segmentWithBreaks);
-                    processedHtml += `<span class="text-sky-400">${segmentWithBreaks}</span>`;
+                    processedHtml += `<span class="${narrationColorClass}">${segmentWithBreaks}</span>`;
                 }
             });
             console.log("[displayStory] Final processedHtml:", processedHtml);
@@ -987,16 +1005,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // 테마 초기화 (DOM 요소 전달)
         if (themeToggleBtn && themeToggleIcon && themeToggleText) {
-            initTheme(themeToggleIcon, themeToggleText); // theme.js의 initTheme 호출
-            themeToggleBtn.addEventListener('click', toggleTheme); // theme.js의 toggleTheme 호출
+            initTheme(themeToggleIcon, themeToggleText); 
+            themeToggleBtn.addEventListener('click', toggleTheme); 
         } else {
             console.error("테마 토글 버튼 또는 관련 요소를 찾을 수 없습니다.");
         }
 
         // 사이드바 초기화
-        if (sidebar && mainContentArea && sidebarToggleIcon) {
-            initSidebar(sidebar, mainContentArea, sidebarToggleIcon);
+        if (sidebar && mainContentArea && mobileHeaderSidebarToggleBtn && desktopSidebarToggleBtn) {
+            initSidebar(sidebar, mainContentArea, mobileHeaderSidebarToggleBtn, desktopSidebarToggleBtn);
+        } else {
+            console.error("사이드바 또는 토글 버튼 요소를 찾을 수 없습니다.");
         }
+
+        // 중요: 각 사이드바 토글 버튼에 이벤트 리스너 추가
+        if (mobileHeaderSidebarToggleBtn) {
+            mobileHeaderSidebarToggleBtn.addEventListener('click', toggleSidebar); 
+        }
+        if (desktopSidebarToggleBtn) {
+            desktopSidebarToggleBtn.addEventListener('click', toggleSidebar); 
+        }
+        // 모바일 닫기 버튼에 대한 이벤트 리스너는 이미 제거됨
 
         await checkUserSession(true);
         await updateContinueAdventureButtonState();
@@ -1322,40 +1351,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // 사이드바 토글 함수
-    function toggleSidebar() {
-        if (sidebar && mainContentArea && sidebarToggleIcon) {
-            const isClosed = sidebar.classList.toggle('closed');
-            mainContentArea.classList.toggle('sidebar-closed', isClosed);
-            localStorage.setItem('sidebarClosed', isClosed ? 'true' : 'false');
-
-            if (isClosed) {
-                sidebarToggleIcon.classList.remove('fa-bars');
-                sidebarToggleIcon.classList.add('fa-chevron-right');
-            } else {
-                sidebarToggleIcon.classList.remove('fa-chevron-right');
-                sidebarToggleIcon.classList.add('fa-bars');
-            }
-        }
-    }
-
-    // 페이지 로드 시 사이드바 상태 복원 함수
-    function applyInitialSidebarState() {
-        if (sidebar && mainContentArea && sidebarToggleIcon) {
-            const sidebarIsClosed = localStorage.getItem('sidebarClosed') === 'true';
-            sidebar.classList.toggle('closed', sidebarIsClosed);
-            mainContentArea.classList.toggle('sidebar-closed', sidebarIsClosed);
-
-            if (sidebarIsClosed) {
-                sidebarToggleIcon.classList.remove('fa-bars');
-                sidebarToggleIcon.classList.add('fa-chevron-right');
-            } else {
-                sidebarToggleIcon.classList.remove('fa-chevron-right');
-                sidebarToggleIcon.classList.add('fa-bars');
-            }
-        }
-    }
-
     document.addEventListener('keydown', (event) => {
         if (gameContainer && !gameContainer.classList.contains('hidden') && !isLoading) {
             const choiceButtons = choicesContainer.querySelectorAll('.choice-btn');
@@ -1368,16 +1363,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // --- 초기화 ---
-    // Sidebar 초기화
-    if (sidebar && mainContentArea && sidebarToggleIcon) {
-        initSidebar(sidebar, mainContentArea, sidebarToggleIcon);
-    }
-    // Theme 초기화
-    if (themeToggleIcon && themeToggleText) { // themeToggleBtn이 아니라 icon과 text 요소 존재 여부 확인
-        initTheme(themeToggleIcon, themeToggleText); // api. 접두사 제거
-    }
-
+    // --- 초기화 ---    
     // 게임 시스템 입력 인터페이스 초기화
     setupSystemInputInterface('create-world-systems-container', 'create-add-world-system-btn', false);
     setupSystemInputInterface('edit-world-systems-container', 'edit-add-world-system-btn', true);

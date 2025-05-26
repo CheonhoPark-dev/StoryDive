@@ -659,3 +659,12 @@
     }
   }
 } 
+
+/* 라이트 모드 텍스트 색상 조정 */
+html:not(.dark) .text-gray-100 {
+  color: #1f2937 !important; /* Tailwind gray-800, dark 클래스가 없을 때 */
+}
+
+html:not(.dark) .text-sky-400 {
+  color: #075985 !important; /* Tailwind sky-700, dark 클래스가 없을 때 */
+} 

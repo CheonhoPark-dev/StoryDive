@@ -116,12 +116,18 @@
         /* 사이드바 스타일 */
         .sidebar {
             background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
-            transition: width 0.3s ease-in-out;
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+            width: 16rem;
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 1000;
+            transition: transform 0.3s ease-in-out, width 0.3s ease-in-out;
         }
 
         .sidebar.closed {
-            width: 4.5rem;
+            transform: translateX(-100%);
         }
         .sidebar.closed .sidebar-text {
             display: none;
@@ -153,11 +159,11 @@
             padding-bottom: 0.5rem;
         }
 
-        .sidebar:not(.closed) #sidebar-toggle-btn {
+        .sidebar:not(.closed) #sidebar-toggle-btn { /* 데스크탑에서 열렸을 때 사이드바 내부 토글 버튼 */
             margin-right: 0.5rem;
         }
 
-        .sidebar.closed #sidebar-toggle-btn {
+        .sidebar.closed #sidebar-toggle-btn { /* 데스크탑에서 닫혔을 때 사이드바 내부 토글 버튼 */
             margin-bottom: 0;
         }
 
@@ -179,12 +185,7 @@
             background-color: #0f0f1e;
             transition: margin-left 0.3s ease-in-out;
         }
-        .main-content.sidebar-closed {
-            margin-left: 4.5rem;
-        }
-        .main-content:not(.sidebar-closed) {
-            margin-left: 16rem;
-        }
+        /* 데스크탑 스타일은 아래 미디어쿼리에서 구체적으로 정의 */
 
         .content-card {
             background: linear-gradient(135deg, #1f2937 0%, #2d3748 100%);
@@ -198,16 +199,16 @@
         }
         
         .input-field {
-            background-color: #374151;
-            border: 1px solid #4b5563;
+            background-color: #2d3748;
+            border: 1px solid #4a5568;
             color: #e5e7eb;
-            transition: all 0.3s ease;
+            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
         }
         
         .input-field:focus {
-            background-color: #404859;
-            border-color: #6366f1;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.4);
+            outline: none;
         }
         
         .input-field::placeholder {
@@ -261,12 +262,12 @@
         }
 
         /* 네비게이션 아이템 호버 효과 */
-        .sidebar button {
+        .sidebar button { /* 사이드바 내의 모든 버튼에 적용될 수 있으므로, 필요시 특정 클래스로 제한 */
             position: relative;
             overflow: hidden;
         }
         
-        .sidebar button::after {
+        .sidebar button.sidebar-item-container::after { /* sidebar-item-container 클래스를 가진 버튼에만 적용 */
             content: '';
             position: absolute;
             left: 0;
@@ -278,7 +279,7 @@
             transition: transform 0.3s ease;
         }
         
-        .sidebar button:hover::after {
+        .sidebar button.sidebar-item-container:hover::after {
             transform: scaleY(1);
         }
 
@@ -459,58 +460,57 @@
         }
 
         /* 추가/수정: 모바일 화면 대응 */
-        @media (max-width: 767px) {
-            .sidebar.closed {
-                width: 0;
-                padding: 0;
-                border-width: 0;
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 80%;
+                max-width: 280px;
             }
 
-            .sidebar.closed .sidebar-logo-and-title,
-            .sidebar.closed nav,
-            .sidebar.closed .mt-auto {
-                display: none;
-            }
-            .sidebar.closed .sidebar-header-area {
-                padding: 0;
-                margin: 0;
+            .sidebar:not(.closed) { 
+                transform: translateX(0);
             }
             
-            .sidebar.closed #sidebar-toggle-btn {
+            .main-content {
+                margin-left: 0 !important; 
+                transition: none; 
+            }
+            
+            #main-content-header {
+                padding-left: 0; 
+            }
+
+            body.sidebar-open-mobile::before {
+                content: "";
                 position: fixed;
-                top: 0.75rem; 
-                left: 0.75rem; 
-                z-index: 50; 
-                background: linear-gradient(135deg, #1f2937 0%, #2d3748 100%);
-                padding: 0.5rem;
-                min-height: auto;
-                border: 1px solid rgba(99, 102, 241, 0.3);
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 999; 
+                opacity: 1;
+                transition: opacity 0.3s ease-in-out;
             }
+            body:not(.sidebar-open-mobile)::before {
+                opacity: 0;
+                pointer-events: none; 
+            }
+        }
 
-            .sidebar.closed #sidebar-toggle-icon {
-                font-size: 1rem;
-                line-height: 1;
+        /* 데스크탑 화면 (769px 이상) */
+        @media (min-width: 769px) {
+            .sidebar {
+                transform: translateX(0);
             }
-
-            body.light-mode .sidebar.closed #sidebar-toggle-btn {
-                background: linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%);
-                border: 1px solid #e5e7eb;
-                color: #374151;
+            .sidebar.closed {
+                width: 4.5rem; /* Desktop closed width */
+                transform: translateX(0);
             }
-            body.light-mode .sidebar.closed #sidebar-toggle-btn:hover {
-                 background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-                 color: #111827;
+            .main-content:not(.sidebar-closed) {
+                margin-left: 16rem; /* Desktop open margin */
             }
-
             .main-content.sidebar-closed {
-                margin-left: 0;
-            }
-
-            .main-content.sidebar-closed header {
-                padding-top: 0.75rem;
-                padding-bottom: 0.75rem;
-                padding-left: 2.75rem;
-                padding-right: 1rem;
+                margin-left: 4.5rem; /* Desktop closed margin */
             }
         }
     </style>
@@ -518,10 +518,11 @@
 <body class="flex h-screen font-sans leading-normal tracking-normal">
 
     <!-- 왼쪽 사이드바 -->
-    <aside id="sidebar" class="sidebar w-64 p-4 flex flex-col fixed top-0 left-0 h-full z-20">
+    <aside id="sidebar" class="sidebar w-64 p-4 flex flex-col fixed top-0 left-0 h-full">
         <!-- 상단 헤더 영역: 토글 버튼 + 로고/타이틀 -->
         <div class="sidebar-header-area mb-1">
-            <button id="sidebar-toggle-btn" class="text-gray-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 p-2 rounded-md sidebar-item-container transition-all duration-200">
+            <!-- 이 버튼은 데스크탑에서 사이드바 내부에 있는 토글 버튼으로 사용. 모바일에선 숨김. -->
+            <button id="sidebar-toggle-btn" class="hidden md:flex text-gray-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 p-2 rounded-md sidebar-item-container transition-all duration-200">
                 <i id="sidebar-toggle-icon" class="fas fa-bars fa-lg"></i>
             </button>
             <div class="sidebar-logo-and-title sidebar-item-container">
@@ -568,13 +569,18 @@
     </aside>
 
     <!-- 메인 콘텐츠 영역 -->
-    <div id="main-content-area" class="main-content flex-1 flex flex-col ml-64">
+    <div id="main-content-area" class="main-content flex-1 flex flex-col"> <!-- ml-64 or ml-responsive removed, CSS handles it -->
         <!-- 상단 바 -->
         <header class="bg-gray-800 shadow-md p-4 sticky top-0 z-10 flex items-center backdrop-blur-sm bg-opacity-90">
-            <div class="container mx-auto flex justify-between items-center">
+            <div class="container mx-auto flex items-center"> <!-- justify-between may not be needed if only title and left button -->
+                <!-- 모바일 화면용 사이드바 토글 버튼 (배너 내부) -->
+                <button id="mobile-header-sidebar-toggle-btn" class="md:hidden mr-3 p-2 text-gray-300 hover:text-white focus:outline-none rounded-md">
+                    <i class="fas fa-bars fa-lg"></i>
+                </button>
                 <h2 id="main-content-header" class="text-xl font-semibold text-header">공개 세계관 탐색</h2>
+                <!-- If other elements were on the right, they might need a wrapper with ml-auto -->
             </div>
-    </header>
+        </header>
 
         <!-- 실제 콘텐츠 -->
         <main class="flex-1 p-6 overflow-y-auto">
