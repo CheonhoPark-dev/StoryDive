@@ -329,7 +329,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function handleStoryApiCall(actionType, payloadData = {}) {
         if (isLoading) return;
         isLoading = true;
-        showLoadingUI(true, 'AI 응답을 기다리는 중...');
+        
+        let loadingMessage = 'AI 응답을 기다리는 중...';
+        if (actionType === 'start_new_adventure') {
+            loadingMessage = '새로운 모험을 준비 중입니다...';
+            // 게임 컨테이너를 먼저 표시하고 로딩 UI를 그릴 준비를 함
+            // showGameScreen 내부에서 mainContentHeader 등을 업데이트하므로, worldTitle을 전달
+            const tempWorldTitle = payloadData.world_title || currentWorldTitle || "모험 로딩 중...";
+            // currentWorldTitle 업데이트는 API 응답 후 이루어지므로, payloadData.world_title을 우선 사용
+            showGameScreen(tempWorldTitle); 
+        }
+        showLoadingUI(true, loadingMessage); // gameContainer가 보여진 후 로딩 UI 표시
 
         let sessionIdToUse;
         if (actionType === 'start_new_adventure') {
@@ -340,7 +350,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log("[DEBUG handleStoryApiCall] storySessionId (global) cleared to null.");
             sessionIdToUse = getSessionId(); 
             console.log(`[DEBUG handleStoryApiCall] For new adventure, sessionIdToUse after getSessionId(): ${sessionIdToUse}`);
-        } else {
+            } else {
             sessionIdToUse = payloadData.session_id || storySessionId || getSessionId();
             console.log(`[DEBUG handleStoryApiCall] For continuing/loading adventure, sessionIdToUse: ${sessionIdToUse}`);
         }
@@ -433,7 +443,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     console.log("[DEBUG handleStoryApiCall load_story] Game screen shown. Session ID:", storySessionId, "World ID:", currentWorldId);
                 } else {
                     displayStory(response.message || "저장된 이야기를 불러오는데 실패했습니다.");
-                    updateChoices([]);
+                updateChoices([]); 
                     if (gameActiveSystemsDisplay) updateActiveSystemsDisplay({}, gameActiveSystemsDisplay);
                 }
             }
@@ -872,12 +882,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log(`[DEBUG saveOrUpdateOngoingAdventure] Original adventureData received:`, JSON.parse(JSON.stringify(adventureData))); // 원본 데이터 로그
         if (!window.currentUser || !window.currentSession) {
             console.warn("[DEBUG saveOrUpdateOngoingAdventure] User not authenticated. Cannot save or update adventure.");
-            return;
-        }
+                return;
+            }
         if (!adventureData.sessionId) {
             console.warn("[DEBUG saveOrUpdateOngoingAdventure] Session ID is missing. Cannot save or update adventure.");
-            return;
-        }
+                return;
+            }
         if (!adventureData.worldId) { // worldId 누락 방지 추가
             console.warn("[DEBUG saveOrUpdateOngoingAdventure] World ID (worldId) is missing in adventureData. Cannot save or update adventure.");
             return;
@@ -918,8 +928,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log(`[DEBUG removeOngoingAdventure] Called. Attempting to remove adventure with sessionId: ${sessionId}`); // 함수 호출 및 sessionId 확인
         if (!window.currentUser || !window.currentSession) {
             console.warn("[DEBUG removeOngoingAdventure] User not authenticated. Cannot remove adventure.");
-            return;
-        }
+                    return;
+                }
         if (!sessionId) {
             console.warn("[DEBUG removeOngoingAdventure] Session ID is missing. Cannot remove adventure.");
             return;
@@ -1044,9 +1054,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const currentPath = window.location.pathname;
     console.log("[DEBUG] DOMContentLoaded - Current path:", currentPath, "User after init:", window.currentUser);
 
-    if (window.currentUser) {
+                if (window.currentUser) {
         if (currentPath === '/' || currentPath === '/index.html') {
-            await showWorldSelectionScreen();
+             await showWorldSelectionScreen();
         } else if (currentPath === '/create-world') {
             const createWorldSystemsContainer = document.getElementById('create-world-systems-container');
             const createAddWorldSystemBtn = document.getElementById('create-add-world-system-btn');
@@ -1098,8 +1108,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     editWorldForm.addEventListener('submit', async (event) => {
                         event.preventDefault();
                         await handleUpdateWorld(event, worldDataFromTemplate.id);
-                    });
-                } else {
+            });
+        } else {
                     console.warn("worldDataFromTemplate is null or undefined after attempting to parse from script tag.");
                     const feedbackEl = document.getElementById('edit-world-feedback');
                     if (feedbackEl) feedbackEl.textContent = '수정할 세계관 데이터를 불러오지 못했습니다 (script parse).';
@@ -1138,7 +1148,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (continueAdventureBtnSidebar) {
         console.log("[DEBUG DOMContentLoaded] Adding click listener to continueAdventureBtnSidebar.");
         continueAdventureBtnSidebar.addEventListener('click', displayOngoingAdventuresModal);
-    } else {
+            } else {
         console.warn("[DEBUG DOMContentLoaded] continueAdventureBtnSidebar not found.");
     }
     if (closeOngoingAdventuresModalBtn) closeOngoingAdventuresModalBtn.addEventListener('click', () => closeModal(ongoingAdventuresModal));

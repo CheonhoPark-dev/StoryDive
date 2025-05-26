@@ -154,33 +154,34 @@ def handle_action():
                 world_systems = world_data_from_db.get('systems', [])
                 world_system_configs = world_data_from_db.get('system_configs', {})
 
-                if world_systems and world_system_configs:
-                    for system_name in world_systems:
-                        if system_name in world_system_configs and 'initial' in world_system_configs[system_name]:
-                            current_active_systems[system_name] = world_system_configs[system_name]['initial']
-                        else:
-                            logger.warning(f"System '{system_name}' not found in system_configs or missing 'initial' value. Defaulting to 0.")
-                            current_active_systems[system_name] = 0 
-                elif world_systems:
-                    logger.warning(f"world_system_configs is empty for world {world_key}. Initializing systems to 0.")
-                    for system_name in world_systems:
-                        current_active_systems[system_name] = 0
-                else:
-                    logger.info(f"No systems defined for world {world_key}.")
+                if world_systems and isinstance(world_systems, list): # world_systems가 리스트인지 확인
+                    if world_system_configs and isinstance(world_system_configs, dict): # world_system_configs가 딕셔너리인지 확인
+                        for system_name in world_systems:
+                            if system_name in world_system_configs and 'initial' in world_system_configs[system_name]:
+                                current_active_systems[system_name] = world_system_configs[system_name]['initial']
+                            else: # system_name이 configs에 없거나 initial이 없는 경우
+                                logger.warning(f"System '{system_name}' not found in system_configs or missing 'initial' value for world {world_key}. Defaulting to 0.")
+                                current_active_systems[system_name] = 0
+                    else: # world_system_configs가 없거나 딕셔너리가 아닌 경우
+                        logger.warning(f"world_system_configs is empty or not a dict for world {world_key}. Initializing all listed systems to 0.")
+                        for system_name in world_systems:
+                            current_active_systems[system_name] = 0
+                else: # world_systems가 없거나 리스트가 아닌 경우
+                    logger.info(f"No systems list defined or systems is not a list for world {world_key}.")
             else:
-                print(f"World with ID {world_key} not found in database.")
+                logger.error(f"World with ID {world_key} not found in database or no data returned.")
                 return jsonify({"error": f"선택한 세계관(ID: {world_key})을 찾을 수 없습니다."}), 404
             
-            print(f"[DEBUG starting_point] DB world data: title='{world_title_for_response}', setting_length='{len(world_setting_text) if world_setting_text else 0}', starting_point='{user_defined_starting_point}'")
+            logger.debug(f"[DEBUG starting_point] DB world data: title='{world_title_for_response}', setting_length='{len(world_setting_text) if world_setting_text else 0}', starting_point='{user_defined_starting_point}'")
 
         except Exception as e:
-            print(f"DB 세계관 조회 오류: {e}")
-            print(traceback.format_exc())
+            logger.error(f"DB 세계관 조회 오류 for world_id {world_key}: {e}")
+            logger.error(traceback.format_exc())
             return jsonify({"error": f"세계관(ID: {world_key}) 조회 중 오류 발생: {str(e)}"}), 500
         
         complete_initial_history = ""
         using_starting_point = bool(user_defined_starting_point and user_defined_starting_point.strip())
-        print(f"[DEBUG starting_point] Condition check: user_defined_starting_point is not None and not empty? {using_starting_point}")
+        logger.debug(f"[DEBUG starting_point] Condition check: user_defined_starting_point is not None and not empty? {using_starting_point}")
 
         current_systems_list_for_prompt = ", ".join([f"{name} (현재값: {value})" for name, value in current_active_systems.items()]) if current_active_systems else "없음. 시스템 변경 지시를 내리지 마세요."
 
@@ -190,10 +191,10 @@ def handle_action():
                 prompt_for_ai = START_WITH_USER_POINT_CHOICES_ONLY_PROMPT_TEMPLATE.format(
                     user_starting_point=newly_generated_story_segment
                 )
-                print(f"[DEBUG Gemini Call] Attempting to call Gemini for CHOICES ONLY. Session: {session_id}, Prompt: {prompt_for_ai[:200]}...")
+                logger.debug(f"[DEBUG Gemini Call] Attempting to call Gemini for CHOICES ONLY. Session: {session_id}, Prompt: {prompt_for_ai[:200]}...")
                 _, choices_for_client = call_gemini_api(prompt_for_ai) 
                 complete_initial_history = (world_setting_text + "\n\n" + newly_generated_story_segment if world_setting_text else newly_generated_story_segment)
-            else:
+            else: # not using_starting_point
                 systems_status_for_prompt = "현재 활성화된 시스템: " + (", ".join([f"{name}({value})" for name, value in current_active_systems.items()]) if current_active_systems else "없음")
         
                 initial_prompt_for_gemini = START_WITH_USER_POINT_PROMPT_TEMPLATE.format(
@@ -202,18 +203,17 @@ def handle_action():
                     systems_status=systems_status_for_prompt
                 )
 
-                print(f"[DEBUG Gemini Call] Attempting to call Gemini for initial story and choices. Session: {session_id}, Prompt: {initial_prompt_for_gemini[:200]}...")
+                logger.debug(f"[DEBUG Gemini Call] Attempting to call Gemini for initial story and choices. Session: {session_id}, Prompt: {initial_prompt_for_gemini[:200]}...")
                 newly_generated_story_segment, choices_for_client = call_gemini_api(initial_prompt_for_gemini)
                 complete_initial_history = (world_setting_text + "\n\n" + newly_generated_story_segment if world_setting_text else newly_generated_story_segment)
             
-            print(f"[DEBUG Gemini Call Success] Gemini call successful. Session: {session_id}, Story segment (start): {newly_generated_story_segment[:50] if newly_generated_story_segment else 'N/A'}")
+            logger.debug(f"[DEBUG Gemini Call Success] Gemini call successful. Session: {session_id}, Story segment (start): {newly_generated_story_segment[:50] if newly_generated_story_segment else 'N/A'}")
         
         except Exception as e:
-            print(f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-            print(f"[CRITICAL ERROR] Exception during Gemini API call or processing its response for session {session_id}: {str(e)}")
-            import traceback
-            print(traceback.format_exc())
-            print(f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            logger.critical(f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            logger.critical(f"[CRITICAL ERROR] Exception during Gemini API call or processing its response for session {session_id} (start_new_adventure): {str(e)}")
+            logger.critical(traceback.format_exc())
+            logger.critical(f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             return jsonify({"error": f"AI 응답 생성 중 심각한 오류 발생: {str(e)}"}), 500
 
         story_sessions_data[session_id] = {
