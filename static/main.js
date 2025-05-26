@@ -547,7 +547,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function updateContinueAdventureButtonState() {
         if (!continueAdventureBtnSidebar) return;
 
-        continueAdventureBtnSidebar.classList.remove('hidden');
+        // continueAdventureBtnSidebar.classList.remove('hidden'); // HTML에서 hidden 클래스 제거로 불필요
 
         if (!window.currentUser || !window.currentSession) {
             continueAdventureBtnSidebar.disabled = true;
@@ -559,7 +559,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (adventures && adventures.length > 0) {
                 continueAdventureBtnSidebar.disabled = false;
             } else {
-                continueAdventureBtnSidebar.disabled = false;
+                // 진행 중인 모험이 없을 경우 버튼을 비활성화합니다.
+                continueAdventureBtnSidebar.disabled = true; 
             }
         } catch (error) {
             console.error("진행중인 모험 상태 업데이트 중 오류 (main.js):", error);
@@ -1363,7 +1364,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // --- 초기화 ---    
+    // --- 초기화 ---
     // 게임 시스템 입력 인터페이스 초기화
     setupSystemInputInterface('create-world-systems-container', 'create-add-world-system-btn', false);
     setupSystemInputInterface('edit-world-systems-container', 'edit-add-world-system-btn', true);

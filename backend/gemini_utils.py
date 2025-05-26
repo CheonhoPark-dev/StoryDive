@@ -212,7 +212,7 @@ def call_gemini_api(prompt):
                         if choice_prefix_match:
                             text_to_add = stripped_line[choice_prefix_match.end():].strip()
                             is_new_choice_line = True
-                        
+                            
                         if is_new_choice_line:
                             if current_choice_text: 
                                 current_temp_choices_list.append(current_choice_text.strip())
@@ -257,12 +257,12 @@ def call_gemini_api(prompt):
                             choice_text = match.group(1).replace("**", "").strip()
                             if choice_text and len(choice_text) > 2:
                                 current_temp_choices_list.append(choice_text)
-                    
-                    if collecting_story or not current_temp_choices_list: # 선택지를 못 찾았으면 story_part_candidate 전체가 이야기
-                        story_part = story_part_candidate
-                    else: # 선택지를 찾았으면 분리
-                        story_part = "\n".join(story_content_lines).strip()
-                        choices_list_text = current_temp_choices_list # choices_list_text에 할당
+                
+                if collecting_story or not current_temp_choices_list: # 선택지를 못 찾았으면 story_part_candidate 전체가 이야기
+                    story_part = story_part_candidate
+                else: # 선택지를 찾았으면 분리
+                    story_part = "\n".join(story_content_lines).strip()
+                    choices_list_text = current_temp_choices_list # choices_list_text에 할당
             
             # choices_marker가 없는 경우, 전체 generated_text에서 선택지 파싱 시도 (위의 로직과 유사하게)
             else: # if not choices_marker:
@@ -308,7 +308,7 @@ def call_gemini_api(prompt):
                 else:
                     story_part = "\n".join(story_content_lines).strip()
                     choices_list_text = current_temp_choices_list # choices_list_text에 할당
-
+            
             # 공통 로직: story_part 와 choices_list_text 최종 정리
             if not choices_list_text and current_temp_choices_list: # current_temp_choices_list에 뭔가 있다면 그걸 사용
                 choices_list_text = current_temp_choices_list

@@ -167,7 +167,7 @@ def handle_action():
                     for system_name in world_systems:
                         current_active_systems[system_name] = 0
                 else: # world_systems 자체가 비어있는 경우
-                     logger.info(f"No systems defined for world {world_key}.")
+                    logger.info(f"No systems defined for world {world_key}.")
 
             else: # world_response.data가 없을 때 (세계를 찾지 못함)
                 print(f"World with ID {world_key} not found in database.")
