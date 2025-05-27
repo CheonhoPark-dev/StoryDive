@@ -22,7 +22,7 @@ def get_ongoing_adventures():
     user_id = str(current_user.id)
     print(f"[DEBUG adventure_routes] Authenticated user: {user_id}")
     print(f"[DEBUG adventure_routes] Fetching adventures for user_id: {user_id} using get_all_ongoing_adventures.")
-    
+
     try:
         # user_jwt를 get_all_ongoing_adventures 함수에 전달합니다.
         adventures_data = get_all_ongoing_adventures(user_id=user_id, user_jwt=user_jwt)

@@ -14,6 +14,9 @@ SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET")
 # Gemini API 설정
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
+# Supabase Service Role Key (백엔드 전용)
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
+
 # Flask 앱을 위한 시크릿 키
 FLASK_SECRET_KEY = os.environ.get("FLASK_SECRET_KEY")
 print(f"[DEBUG config.py] FLASK_SECRET_KEY from os.environ: {FLASK_SECRET_KEY}") # 로드 직후 값 확인
@@ -26,4 +29,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
     print("경고: SUPABASE_URL 또는 SUPABASE_KEY 환경 변수가 설정되지 않았습니다. Supabase 기능이 비활성화될 수 있습니다.")
 
 if not GEMINI_API_KEY:
-    print("경고: GEMINI_API_KEY 환경 변수가 설정되지 않았습니다.") 
+    print("경고: GEMINI_API_KEY 환경 변수가 설정되지 않았습니다.")
+
+if not SUPABASE_SERVICE_KEY:
+    print("경고: SUPABASE_SERVICE_KEY 환경 변수가 설정되지 않았습니다. 파일 업로드 등 일부 백엔드 기능이 제한될 수 있습니다.") 

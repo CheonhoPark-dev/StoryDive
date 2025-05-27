@@ -8,12 +8,34 @@
 <div id="edit-world-form-container" class="content-card p-8 rounded-xl shadow-lg mb-8 md:col-span-2 lg:col-span-3 card-hover">
     {% if world %}
     <h3 class="text-2xl font-semibold mb-6 text-header text-center gradient-text">세계관 정보 수정: {{ world.title }}</h3>
-    <form id="edit-world-form" class="space-y-6" data-world-id="{{ world.id }}">
+    <form id="edit-world-form" class="space-y-6" enctype="multipart/form-data" data-world-id="{{ world.id }}">
         <div>
             <label for="edit-world-title" class="block text-sm font-medium text-subheader mb-1">세계관 제목 <span class="text-red-500">*</span></label>
             <input type="text" id="edit-world-title" name="title" required value="{{ world.title or '' }}"
                    class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
         </div>
+
+        <!-- Cover Image Upload Section -->
+        <div class="mb-6 p-4 border border-gray-700 rounded-lg">
+            <h4 class="text-lg font-medium text-subheader mb-3">커버 이미지 (선택 사항)</h4>
+            <div class="flex items-center space-x-4">
+                <div class="shrink-0">
+                    <img id="edit-cover-image-preview" 
+                         src="{{ world.cover_image_url or url_for('static', filename='images/default_world_cover.png') }}" 
+                         alt="커버 이미지 미리보기" 
+                         class="h-24 w-24 object-cover rounded-md border border-gray-600 bg-gray-700"
+                         onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/default_world_cover.png') }}';">
+                </div>
+                <label class="block">
+                    <span class="sr-only">커버 이미지 선택</span>
+                    <input type="file" id="edit-cover-image-input" name="cover_image_file" accept="image/png, image/jpeg, image/jpg, image/gif, image/webp"
+                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-indigo-50 hover:file:bg-indigo-700 transition cursor-pointer">
+                </label>
+            </div>
+            <p class="mt-2 text-xs text-gray-500">PNG, JPG, GIF, WEBP 파일 (최대 5MB).</p>
+        </div>
+        <!-- End Cover Image Upload Section -->
+
         <div>
             <label for="edit-world-setting" class="block text-sm font-medium text-subheader mb-1">세계관 상세 설정 <span class="text-red-500">*</span></label>
             <textarea id="edit-world-setting" name="setting" rows="6" required
@@ -36,13 +58,7 @@
                    class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
                    placeholder="예: 마법, 학원물, 동물, 비밀 (선택 사항)">
         </div>
-        <div>
-            <label for="edit-world-cover-image-url" class="block text-sm font-medium text-subheader mb-1">커버 이미지 URL</label>
-            <input type="url" id="edit-world-cover-image-url" name="cover_image_url" value="{{ world.cover_image_url or '' }}"
-                   class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
-                   placeholder="세계관을 나타내는 이미지 주소 (선택 사항)">
-        </div>
-
+        
         <!-- 게임 시스템 설정 섹션 (수정 폼) -->
         <div class="mb-6 p-4 border border-gray-700 rounded-lg">
             <h4 class="text-lg font-medium text-subheader mb-3">게임 시스템 설정 (선택 사항)</h4>
@@ -92,7 +108,35 @@
         const cancelBtn = document.getElementById('cancel-edit-world-btn');
         if (cancelBtn) {
             cancelBtn.addEventListener('click', () => {
-                window.location.href = "{{ url_for('my_worlds_page') }}";
+                if (confirm('변경사항을 저장하지 않고 나가시겠습니까?')) {
+                    window.location.href = "{{ url_for('my_worlds_page') }}";
+                }
+            });
+        }
+
+        // 이미지 미리보기 로직 추가
+        const imageInput = document.getElementById('edit-cover-image-input');
+        const imagePreview = document.getElementById('edit-cover-image-preview');
+        const defaultCoverImage = "{{ url_for('static', filename='images/default_world_cover.png') }}";
+
+        if (imageInput && imagePreview) {
+            imageInput.addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        imagePreview.src = e.target.result;
+                    }
+                    reader.readAsDataURL(file);
+                } else {
+                    // 파일 선택이 취소된 경우, 기존 이미지가 있다면 그대로 두고, 없다면 기본 이미지로 설정
+                    // (world.cover_image_url이 이미 src에 설정되어 있으므로, 파일 선택 취소 시 특별히 변경할 필요 없음)
+                    // 만약 기존 이미지가 없고, 사용자가 파일을 선택했다가 취소하면 기본 이미지로 돌아가게 할 수 있음.
+                    // 현재 로직은 사용자가 파일을 선택하면 미리보기가 바뀌고, 취소해도 바뀐 미리보기가 유지됨.
+                    // 파일을 다시 선택하지 않고 폼을 제출하면, 백엔드에서 기존 이미지 URL을 유지하거나, 
+                    // 파일이 없음을 인지하고 기본값 처리 등을 해야 함.
+                    // 여기서는 단순 미리보기 업데이트만 처리.
+                }
             });
         }
     });

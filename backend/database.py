@@ -261,11 +261,7 @@ def save_ongoing_adventure(adventure_data: dict, user_jwt: str | None = None) ->
         # response.data가 비어있더라도 오류가 없으면 성공으로 간주할 수 있습니다 (특히 count가 없는 경우).
         if (hasattr(response, 'data') and response.data) or not (hasattr(response, 'error') and response.error):
             print(f"[DEBUG save_ongoing_adventure] DB 저장/업데이트 성공: session_id={adventure_data['session_id']}")
-            return True
-        else:
-            # 이 경우는 예상치 못한 응답이므로 로그를 남깁니다.
-            print(f"[DEBUG save_ongoing_adventure] DB 저장/업데이트 실패 (예상치 못한 응답). Response: {response}")
-            return False
+        return True
 
     except Exception as e:
         print(f"[DEBUG save_ongoing_adventure] DB에 ongoing_adventure 저장/업데이트 중 심각한 오류: {e}")
@@ -327,7 +323,7 @@ def delete_ongoing_adventure(session_id: str, user_id: str, user_jwt: str | None
                          .execute()
         
         print(f"[DEBUG delete_ongoing_adventure] Supabase delete response: {response}") # Supabase 응답 전체 로깅
-
+        
         if hasattr(response, 'error') and response.error:
             print(f"[DEBUG delete_ongoing_adventure] DB 삭제 실패 (API 오류): {response.error.message if hasattr(response.error, 'message') else response.error}")
             return False
@@ -340,12 +336,13 @@ def delete_ongoing_adventure(session_id: str, user_id: str, user_jwt: str | None
             else:
                 print(f"[DEBUG delete_ongoing_adventure] DB 삭제 대상 없음 (0개 레코드 삭제됨): session_id={session_id}, user_id={user_id}")
                 return True # 대상이 없어도 실패는 아님
-        elif hasattr(response, 'data') and not response.data: # count가 없고 data가 비어있는 경우 (이전 버전 Supabase 호환성)
+        elif hasattr(response, 'data') and not response.data and not (hasattr(response, 'error') and response.error): # count가 없고 data가 비어있으며 오류도 없는 경우
              print(f"[DEBUG delete_ongoing_adventure] DB 삭제 성공 또는 대상 없음 (데이터 없음, 오류 없음): session_id={session_id}, user_id={user_id}")
              return True
-        else: # 예상치 못한 응답
-            print(f"[DEBUG delete_ongoing_adventure] DB 삭제 실패 (예상치 못한 응답). Response: {response}")
-            return False
+        # else: # 이 else 블록은 불필요하며, 다음 라인들이 여기에 속하면 오류가 발생합니다.
+        # 위의 if/elif 조건에 해당하지 않으면 실패로 간주하거나, 응답을 로깅합니다.
+        print(f"[DEBUG delete_ongoing_adventure] DB 삭제 실패 (예상치 못한 응답 또는 명시적 성공 아님). Response: {response}")
+        return False
 
     except Exception as e:
         print(f"[DEBUG delete_ongoing_adventure] DB에서 ongoing_adventure 삭제 중 심각한 오류: {e}")

@@ -28,19 +28,15 @@ story_sessions_data = {}
 # 시스템 업데이트 파싱 및 적용 함수
 def parse_and_apply_system_updates(text_with_updates, current_systems):
     logger.debug(f"Parsing system updates from text: '{text_with_updates[:100]}...', current_systems: {current_systems}")
-    # 정규표현식: [SYSTEM_UPDATE: 이름(+|-|=)값]
-    # 이름은 공백을 포함할 수 있으므로 탐욕적이지 않게 (.+?) 사용
-    # 값은 숫자 또는 음수/소수점을 포함할 수 있도록 수정: (-?[0-9.]+)
-    system_update_pattern = r'\[SYSTEM_UPDATE:\s*(.+?)\s*([+\-=])\s*(-?[0-9.]+)\s*\]'
+    system_update_pattern = r'\\[SYSTEM_UPDATE:\\s*(.+?)\\s*([+\\-=])\\s*(-?[0-9.]+)\\s*\\]'
     system_update_matches = list(re.finditer(system_update_pattern, text_with_updates))
     
     cleaned_story = text_with_updates
-    updates_applied_summary = {} # 실제로 적용된 업데이트와 값
-    raw_updates_parsed = [] # 파싱된 모든 업데이트 (성공 여부와 관계없이)
+    updates_applied_summary = {}
+    raw_updates_parsed = []
 
-    if not current_systems: # current_systems가 None이거나 비어있을 경우
+    if not current_systems:
         logger.warning("current_systems is empty or None. No system updates will be applied.")
-        # AI가 시스템 업데이트를 시도했더라도, 원본 텍스트에서 해당 부분을 제거는 해야 함
         for match in system_update_matches:
             cleaned_story = cleaned_story.replace(match.group(0), "").strip()
         return {}, {"cleaned_story": cleaned_story, "updates_applied": {}, "raw_updates": []}
@@ -58,34 +54,24 @@ def parse_and_apply_system_updates(text_with_updates, current_systems):
             "full_match": full_match_text
         })
 
-        # !!!!! 중요: 현재 시스템에 존재하는 이름인지 확인 !!!!!
         if system_name_raw in current_systems:
             try:
                 value_to_change = float(value_str) 
-                # 필요하다면 int로 변환: value_to_change = int(float(value_str)) 
-                # 현재는 float으로 유지하여 소수점 시스템 값도 지원
-                
                 original_value = current_systems[system_name_raw]
                 new_value = original_value
-
                 if operator == '+':
                     new_value += value_to_change
                 elif operator == '-':
                     new_value -= value_to_change
                 elif operator == '=':
                     new_value = value_to_change
-                
                 current_systems[system_name_raw] = new_value
                 updates_applied_summary[system_name_raw] = new_value
                 logger.info(f"System '{system_name_raw}' updated from {original_value} to {new_value}.")
-
             except ValueError:
                 logger.warning(f"Invalid value '{value_str}' for system '{system_name_raw}'. Update skipped for this instance.")
         else:
-            # 존재하지 않는 시스템에 대한 업데이트는 무시하고 로그만 남김
             logger.warning(f"Attempted to update non-existent system '{system_name_raw}' with value '{value_str}'. Update_skipped.")
-
-        # 원본 텍스트에서 해당 업데이트 문자열 제거 (성공 여부와 관계없이)
         cleaned_story = cleaned_story.replace(full_match_text, "").strip()
     
     logger.debug(f"Final active_systems after updates: {current_systems}")
@@ -173,7 +159,6 @@ def handle_action():
                 return jsonify({"error": f"선택한 세계관(ID: {world_key})을 찾을 수 없습니다."}), 404
             
             logger.debug(f"[DEBUG starting_point] DB world data: title='{world_title_for_response}', setting_length='{len(world_setting_text) if world_setting_text else 0}', starting_point='{user_defined_starting_point}'")
-
         except Exception as e:
             logger.error(f"DB 세계관 조회 오류 for world_id {world_key}: {e}")
             logger.error(traceback.format_exc())

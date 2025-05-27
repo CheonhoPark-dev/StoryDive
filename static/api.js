@@ -3,9 +3,19 @@ const API_BASE_URL = '/api';
 async function fetchAPI(endpoint, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
     console.log(`[DEBUG fetchAPI] Requesting: ${options.method || 'GET'} ${url}`); // 요청 정보 로그
+    
+    // 기본 헤더 설정
+    const defaultHeaders = {};
+    // Content-Type은 options에 명시적으로 설정되지 않았고, body가 FormData가 아닐 때만 기본값(json)으로 설정
+    if (!options.headers || !options.headers['Content-Type']) {
+        if (!(options.body instanceof FormData)) {
+            defaultHeaders['Content-Type'] = 'application/json';
+        }
+    }
+
     const headers = {
-        'Content-Type': 'application/json',
-        ...options.headers,
+        ...defaultHeaders,
+        ...options.headers, // 사용자가 전달한 헤더가 우선순위를 가짐 (또는 defaultHeaders 이후에 병합)
     };
 
     // Supabase 세션에서 토큰 가져오기 (main.js 또는 auth.js에서 관리하는 currentSession을 어떻게든 참조해야 함)
@@ -68,9 +78,23 @@ export async function createWorld(worldData) {
 }
 
 export async function updateWorld(worldId, worldData) {
-    return fetchAPI(`/worlds/${worldId}`, {
+    // worldData가 FormData 인스턴스인지 확인
+    const isFormData = worldData instanceof FormData;
+    console.log(`[DEBUG updateWorld API] Updating world ${worldId}. Is FormData: ${isFormData}`);
+
+    const headers = {
+        ...(window.currentSession && window.currentSession.access_token ? { 'Authorization': `Bearer ${window.currentSession.access_token}` } : {})
+    };
+
+    // FormData가 아닐 경우에만 Content-Type을 application/json으로 설정
+    if (!isFormData) {
+        headers['Content-Type'] = 'application/json';
+    }
+
+    return await fetchAPI(`/worlds/${worldId}`, {
         method: 'PUT',
-        body: JSON.stringify(worldData),
+        headers: headers,
+        body: isFormData ? worldData : JSON.stringify(worldData)
     });
 }
 

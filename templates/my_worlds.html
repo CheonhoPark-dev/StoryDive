@@ -5,16 +5,22 @@
 {% block page_header %}내가 만든 세계관{% endblock %}
 
 {% block content %}
-<div id="my-worlds-section" class="content-card p-6 rounded-xl md:col-span-2 lg:col-span-3 card-hover">
-    <h3 class="text-xl font-semibold mb-4 text-header flex items-center">
-        <i class="fas fa-user-circle mr-2 text-indigo-400"></i>
-        내가 만든 세계관
-    </h3>
-    <div id="my-worlds-feedback" class="text-sm mb-2"></div>
-    <div id="my-worlds-list" class="space-y-3">
-        <p id="my-worlds-loading-msg" class="text-content">
-            내 세계관 목록을 불러오는 중<span class="loading-dots"></span>
-        </p>
+<!-- World Selection Container -->
+<div id="world-selection-container" class="">
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <!-- 내가 만든 세계관 목록 표시 영역 -->
+        <div id="my-worlds-section" class="content-card p-6 rounded-xl md:col-span-2 lg:col-span-3 mb-8 card-hover">
+            <h3 class="text-xl font-semibold mb-4 text-header flex items-center">
+                <i class="fas fa-user-circle mr-2 text-indigo-400"></i>
+                내가 만든 세계관
+            </h3>
+            <div id="my-worlds-feedback" class="text-sm mb-2"></div>
+            <div id="my-worlds-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <p id="my-worlds-loading-msg" class="text-content md:col-span-2 lg:col-span-3">
+                    내 세계관 목록을 불러오는 중<span class="loading-dots"></span>
+                </p>
+            </div>
+        </div>
     </div>
 </div>
 

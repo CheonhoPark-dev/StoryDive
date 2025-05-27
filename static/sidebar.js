@@ -77,8 +77,8 @@ function removeOverlayClickListener() {
 export function toggleSidebar() {
     if (!sidebarEl || !mainContentAreaEl) return;
 
-    const isClosed = sidebarEl.classList.toggle('closed');
-    localStorage.setItem('sidebarClosed', isClosed ? 'true' : 'false');
+        const isClosed = sidebarEl.classList.toggle('closed');
+        localStorage.setItem('sidebarClosed', isClosed ? 'true' : 'false');
 
     const allToggleIcons = [];
     if (mobileToggleBtnEl) allToggleIcons.push(mobileToggleBtnEl.querySelector('i'));
@@ -103,19 +103,19 @@ export function toggleSidebar() {
         } else {
             document.body.classList.add('sidebar-open-mobile');
             addOverlayClickListener(); // 사이드바 열릴 때 리스너 추가
-        }
+            }
     } else {
         removeOverlayClickListener(); // 데스크탑 모드에서는 항상 리스너 제거
     }
-    updateMainContentClass(isClosed);
+        updateMainContentClass(isClosed);
     adjustModalPosition(); // 사이드바 토글 시 모달 위치 조정
 }
 
 function applyInitialSidebarState() {
     if (!sidebarEl || !mainContentAreaEl) return;
 
-    const sidebarIsClosed = localStorage.getItem('sidebarClosed') === 'true';
-    sidebarEl.classList.toggle('closed', sidebarIsClosed);
+        const sidebarIsClosed = localStorage.getItem('sidebarClosed') === 'true';
+        sidebarEl.classList.toggle('closed', sidebarIsClosed);
 
     const allToggleIcons = [];
     if (mobileToggleBtnEl) allToggleIcons.push(mobileToggleBtnEl.querySelector('i'));
@@ -123,10 +123,10 @@ function applyInitialSidebarState() {
 
     allToggleIcons.forEach(icon => {
         if (icon) {
-            if (sidebarIsClosed) {
+        if (sidebarIsClosed) {
                 icon.classList.remove('fa-bars');
                 icon.classList.add('fa-chevron-right');
-            } else {
+        } else {
                 icon.classList.remove('fa-chevron-right');
                 icon.classList.add('fa-bars');
             }
@@ -135,7 +135,7 @@ function applyInitialSidebarState() {
 
     if (window.matchMedia(MOBILE_MAX_WIDTH).matches) {
         if (!sidebarIsClosed) { 
-            document.body.classList.add('sidebar-open-mobile');
+                document.body.classList.add('sidebar-open-mobile');
             addOverlayClickListener(); // 초기 상태가 열림이면 리스너 추가
         } else {
             document.body.classList.remove('sidebar-open-mobile');
@@ -143,8 +143,8 @@ function applyInitialSidebarState() {
         }
     } else {
         removeOverlayClickListener(); // 데스크탑 모드에서는 항상 리스너 제거
-    }
-    updateMainContentClass(sidebarIsClosed);
+        }
+        updateMainContentClass(sidebarIsClosed);
     adjustModalPosition(); // 초기 상태 적용 시 모달 위치 조정
 }
 

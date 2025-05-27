@@ -656,5 +656,81 @@
     </script>
     <script type="module" src="{{ url_for('static', filename='main.js') }}"></script>
     {% block extra_scripts %}{% endblock %}
+
+<!-- World Detail Modal -->
+<div id="world-detail-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden z-[1050]">
+    <div class="bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col text-white">
+        <!-- Modal Header -->
+        <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-3">
+            <h3 id="modal-world-title" class="text-2xl font-semibold gradient-text">세계관 제목</h3>
+            <button id="close-world-detail-modal-btn" class="text-gray-400 hover:text-white text-3xl transition-colors">&times;</button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="overflow-y-auto flex-grow pr-2 scrollbar-custom">
+            <div class="mb-4">
+                <img id="modal-world-cover-image" src="/static/images/default_world_cover.png" alt="커버 이미지" class="w-full h-64 object-cover rounded-md shadow-lg">
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <h5 class="text-sm font-semibold text-gray-400 mb-1">장르</h5>
+                    <p id="modal-world-genre" class="text-gray-200">-</p>
+                </div>
+                <div class="md:col-span-2">
+                    <h5 class="text-sm font-semibold text-gray-400 mb-1">태그</h5>
+                    <div id="modal-world-tags" class="flex flex-wrap gap-2">
+                        <span class="text-xs bg-gray-700 px-2 py-0.5 rounded-full">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h5 class="text-sm font-semibold text-gray-400 mb-1">세계관 상세 설정</h5>
+                <p id="modal-world-setting" class="text-gray-300 whitespace-pre-wrap text-sm leading-relaxed bg-gray-700 p-3 rounded-md max-h-40 overflow-y-auto scrollbar-thin"></p>
+            </div>
+
+            <div id="modal-world-starting-point-container" class="mb-4 hidden">
+                <h5 class="text-sm font-semibold text-gray-400 mb-1">이야기 시작점</h5>
+                <p id="modal-world-starting-point" class="text-gray-300 whitespace-pre-wrap text-sm bg-gray-700 p-3 rounded-md max-h-32 overflow-y-auto scrollbar-thin"></p>
+            </div>
+            
+            <!-- 추가 기능 버튼 (디자인만) -->
+            <div class="my-6 py-4 border-t border-b border-gray-700">
+                <h5 class="text-sm font-semibold text-gray-400 mb-3 text-center">추가 기능 (구현 예정)</h5>
+                <div class="flex justify-around items-center text-gray-400">
+                    <button class="flex flex-col items-center hover:text-indigo-400 transition-colors">
+                        <i class="far fa-bookmark text-2xl mb-1"></i>
+                        <span class="text-xs">찜하기</span>
+                    </button>
+                    <button class="flex flex-col items-center hover:text-green-400 transition-colors">
+                        <i class="far fa-thumbs-up text-2xl mb-1"></i>
+                        <span class="text-xs">좋아요</span>
+                    </button>
+                    <button class="flex flex-col items-center hover:text-red-400 transition-colors">
+                        <i class="far fa-thumbs-down text-2xl mb-1"></i>
+                        <span class="text-xs">싫어요</span>
+                    </button>
+                    <button class="flex flex-col items-center hover:text-yellow-400 transition-colors">
+                        <i class="far fa-flag text-2xl mb-1"></i>
+                        <span class="text-xs">신고하기</span>
+                    </button>
+                </div>
+            </div>
+            <div id="modal-world-comments-placeholder" class="mb-4">
+                 <h5 class="text-sm font-semibold text-gray-400 mb-2">댓글 (구현 예정)</h5>
+                 <div class="bg-gray-700 p-3 rounded-md text-center text-gray-500 text-xs">댓글 기능이 추가될 예정입니다.</div>
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="mt-auto pt-4 border-t border-gray-700 flex justify-end">
+            <button id="modal-start-adventure-btn" class="btn-primary text-white px-6 py-3 rounded-lg font-medium transition flex items-center justify-center btn-glow">
+                <i class="fas fa-play mr-2"></i>이 세계관으로 모험 시작
+            </button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html> 

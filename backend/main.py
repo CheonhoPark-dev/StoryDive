@@ -9,6 +9,11 @@ from backend.database import get_db_client # get_db_client 추가
 # 애플리케이션 인스턴스 생성
 app = create_app()
 
+# --- 이미지 업로드 폴더 설정 추가 ---
+# world_management.py에서 os.path.join(current_app.root_path, 'static', current_app.config['UPLOAD_FOLDER_COVERS']) 형태로 사용됨
+app.config['UPLOAD_FOLDER_COVERS'] = 'uploads/cover_images' # static 폴더를 기준으로 한 상대 경로
+# --- 설정 추가 끝 ---
+
 @app.route('/create-world')
 def create_world_page():
     """새로운 세계관 생성 페이지를 렌더링합니다."""
