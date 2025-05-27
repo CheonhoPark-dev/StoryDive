@@ -32,7 +32,7 @@ DEFAULT_PROMPT_TEMPLATE = """
 
 [지시사항]
 1. 다음 이야기 세그먼트는 최소 150자 이상으로 작성해주세요. 독창적이고 몰입감 있는 이야기를 들려주세요.
-2. 사용자가 선택할 수 있는 선택지 3-4개를 제공해주세요. 각 선택지는 50자 내외로 명확하고 흥미로운 결과를 암시해야 합니다.
+2. 사용자가 선택할 수 있는 선택지 3-4개를 제공해주세요. 각 선택지는 50자 내외로 명확하고 흥미로운 결과를 암시해야 합니다. **선택지 텍스트에는 절대로 [SYSTEM_UPDATE: ...] 태그를 포함하지 마십시오.**
 3. 이야기는 사용자의 이전 선택과 세계관 설정을 충실히 반영해야 합니다.
 4. 갑작스러운 전개나 주제 이탈은 피해주세요.
 5. 이야기가 너무 길어지면 사용자가 지루해할 수 있으니, 핵심 사건 위주로 전개해주세요.
@@ -43,14 +43,14 @@ DEFAULT_PROMPT_TEMPLATE = """
 다음은 이 세계관에서 현재 사용 중인 시스템 목록과 현재 값입니다:
 {current_systems_list_for_prompt}
 
-만약 이야기의 결과로 **위에 명시된 시스템들의 값만** 변경되어야 한다면, 반드시 다음 형식으로 이야기 마지막에 포함시켜 응답해주세요.
+**매우 중요**:
+만약 이야기의 결과로 **위에 명시된 시스템들의 값 변경이 필요하다면, 해당 변경 사항은 반드시 생성되는 *스토리 본문 내용 중 가장 적절한 위치에 자연스럽게* 다음 형식으로 명시해야 합니다.**
+형식: `[SYSTEM_UPDATE: 시스템명(+|-)변경값]` 또는 `[SYSTEM_UPDATE: 시스템명=새로운절대값]`
+하나의 스토리 본문에 여러 시스템 변경이 있다면 각각의 태그를 모두 포함할 수 있습니다.
+예시 스토리 본문: "...그는 용감하게 동굴로 들어갔다. [SYSTEM_UPDATE: 용기+10] 그의 심장이 거칠게 뛰었지만, 발걸음을 멈추지 않았다. [SYSTEM_UPDATE: 피로도+5] ..."
 **위에 명시되지 않은 시스템 이름(예: 평판, 건강 등)을 임의로 만들거나 수정하려고 시도하지 마세요. 오직 제공된 시스템 이름만 사용해야 합니다.**
-형식: [SYSTEM_UPDATE: 시스템명(+|-)변경값] 또는 [SYSTEM_UPDATE: 시스템명=새로운절대값]
-예시:
-[SYSTEM_UPDATE: 골드+10]
-[SYSTEM_UPDATE: 체력-5] (만약 '체력'이 {current_systems_list_for_prompt}에 있다면)
-여러 시스템을 동시에 업데이트할 수 있습니다. (예: [SYSTEM_UPDATE: 골드-5] [SYSTEM_UPDATE: 경험치+10])
-시스템 값 변경이 없다면 이 부분을 포함하지 마세요.
+시스템 값 변경이 없다면 시스템 업데이트 태그를 포함하지 않아도 됩니다.
+**선택지 텍스트에는 절대로 시스템 업데이트 태그를 포함하지 마십시오.**
 -------------------------
 
 이제 다음 이야기와 선택지를 생성해주세요:
@@ -60,6 +60,9 @@ SUMMARIZE_PROMPT_TEMPLATE = """
 다음은 대화형 스토리 게임의 진행 내용입니다. 이 내용을 바탕으로 사용자가 앞으로의 이야기를 이해하는 데 필요한 핵심 정보만 남기고 간결하게 요약해주세요.
 등장인물, 주요 사건, 현재 상황, 해결해야 할 문제 등을 중심으로 요약하고, 너무 세부적인 대화나 묘사는 생략해주세요.
 요약은 500자 이내로 해주세요.
+
+[세계관 배경 설정 요약 (참고용)]
+{world_setting_summary}
 
 [전체 이야기 내용]
 {story_history}
@@ -94,9 +97,10 @@ START_WITH_USER_POINT_CHOICES_ONLY_PROMPT_TEMPLATE = """당신은 사용자가 �
 선택지:
 """
 
-def summarize_story_with_gemini(story_text_to_summarize, target_char_length=800):
+def summarize_story_with_gemini(story_text_to_summarize, world_setting_for_summary="", target_char_length=800):
     """
     Gemini API를 사용하여 긴 이야기를 요약하는 함수.
+    world_setting_for_summary: 요약 시 참고할 세계관 설정.
     target_char_length는 목표 요약문의 글자 수.
     """
     if not GEMINI_API_KEY:
@@ -111,7 +115,7 @@ def summarize_story_with_gemini(story_text_to_summarize, target_char_length=800)
         return truncated_text + "... (중요: 이야기의 앞부분이 생략되었거나 요약되지 않았습니다. Gemini API 키를 확인하세요.)"
 
     model = genai.GenerativeModel('gemini-1.5-flash-latest')
-    prompt = SUMMARIZE_PROMPT_TEMPLATE.format(story_history=story_text_to_summarize)
+    prompt = SUMMARIZE_PROMPT_TEMPLATE.format(story_history=story_text_to_summarize, world_setting_summary=world_setting_for_summary)
     
     estimated_tokens_for_summary = min(int(target_char_length * 1.5), 2048)
 

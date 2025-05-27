@@ -135,7 +135,7 @@ export class StoryGameManager {
                 button.addEventListener('click', () => {
                     this.handleStoryApiCall("continue_adventure", { 
                         choice_id: choice.id, 
-                        action_text: choice.text, 
+                        action_text: choice.text,
                         world_key: this.currentWorldId 
                     });
                 });

@@ -27,51 +27,42 @@ story_sessions_data = {}
 
 # 시스템 업데이트 파싱 및 적용 함수
 def parse_and_apply_system_updates(text_with_updates, current_systems):
-    logger.debug(f"Parsing system updates from text: '{text_with_updates[:100]}...', current_systems: {current_systems}")
-    system_update_pattern = r'\\[SYSTEM_UPDATE:\\s*(.+?)\\s*([+=\-])\\s*(-?[0-9.]+)\s*\\]'
+    logger.debug(f"Parsing system updates from text: '{text_with_updates[:200]}...', current_systems: {current_systems}")
     
-    system_update_matches = [] # 미리 초기화
-    try:
-        # 정규식 디버깅 정보 출력 시도
-        logger.debug(f"Compiling regex pattern with re.DEBUG: {system_update_pattern}")
-        # re.DEBUG 플래그는 컴파일 시점에 표준 출력으로 디버깅 정보를 출력합니다.
-        # 실제 운영 환경에서는 이 플래그 사용에 주의해야 합니다.
-        compiled_pattern = re.compile(system_update_pattern, re.DEBUG) 
-        system_update_matches = list(compiled_pattern.finditer(text_with_updates))
-        logger.debug(f"Regex finditer completed. Number of matches: {len(system_update_matches)}")
-    except re.error as e:
-        logger.error(f"Regex error during compilation or finditer for pattern '{system_update_pattern}': {e}")
-        # 오류 발생 시, 빈 리스트를 사용하거나, 함수 호출자에게 오류를 전파할 수 있습니다.
-        # 여기서는 빈 리스트로 계속 진행하여 cleaned_story만 반환하도록 합니다.
-        pass # system_update_matches는 이미 빈 리스트로 초기화됨
+    # 수정된 정규식 패턴 (유연성 증가) - 백슬래시 없는 형태로 수정
+    system_update_pattern_str = r'\[SYSTEM_UPDATE:\s*(?P<name>.+?)\s*(?P<operator>[+=-])\s*(?P<value>-?\d+(?:\.\d+)?)\s*\]'
     
-    cleaned_story = text_with_updates
     updates_applied_summary = {}
     raw_updates_parsed = []
+    
+    systems_to_update = current_systems.copy() if current_systems is not None else {}
 
-    if not current_systems:
-        logger.warning("current_systems is empty or None. No system updates will be applied.")
-        for match in system_update_matches:
-            cleaned_story = cleaned_story.replace(match.group(0), "").strip()
-        return {}, {"cleaned_story": cleaned_story, "updates_applied": {}, "raw_updates": []}
-
-    for match in system_update_matches:
-        full_match_text = match.group(0)
-        system_name_raw = match.group(1).strip()
-        operator = match.group(2)
-        value_str = match.group(3)
+    def apply_change_and_remove_tag(match_obj):
+        full_tag_text = match_obj.group(0)
+        try:
+            system_name_raw = match_obj.group("name").strip()
+            operator = match_obj.group("operator").strip()
+            value_str = match_obj.group("value").strip()
+        except IndexError:
+            logger.warning(f"Could not parse components from tag: '{full_tag_text}'. Regex group missing. Skipping.")
+            return "" # 오류 발생 시 태그만 제거하고 원본 텍스트 유지 또는 빈 문자열 반환
         
+        logger.debug(f"Parsed tag: Name='{system_name_raw}', Op='{operator}', ValStr='{value_str}' from '{full_tag_text}'")
         raw_updates_parsed.append({
             "name": system_name_raw,
             "operator": operator,
             "value_str": value_str,
-            "full_match": full_match_text
+            "full_match": full_tag_text
         })
 
-        if system_name_raw in current_systems:
+        if not systems_to_update:
+             logger.warning(f"Skipping update for '{system_name_raw}' as current_systems is empty or None.")
+             return "" 
+
+        if system_name_raw in systems_to_update:
             try:
-                value_to_change = float(value_str) 
-                original_value = current_systems[system_name_raw]
+                value_to_change = float(value_str)
+                original_value = systems_to_update[system_name_raw]
                 new_value = original_value
                 if operator == '+':
                     new_value += value_to_change
@@ -79,20 +70,43 @@ def parse_and_apply_system_updates(text_with_updates, current_systems):
                     new_value -= value_to_change
                 elif operator == '=':
                     new_value = value_to_change
-                current_systems[system_name_raw] = new_value
+                else:
+                    logger.warning(f"Invalid operator '{operator}' in tag '{full_tag_text}'. Skipping update.")
+                    return "" # 잘못된 연산자면 태그만 제거
+                
+                systems_to_update[system_name_raw] = new_value
                 updates_applied_summary[system_name_raw] = new_value
-                logger.info(f"System '{system_name_raw}' updated from {original_value} to {new_value}.")
+                logger.info(f"System '{system_name_raw}' updated from {original_value} to {new_value} based on tag: {full_tag_text}")
             except ValueError:
-                logger.warning(f"Invalid value '{value_str}' for system '{system_name_raw}'. Update skipped for this instance.")
+                logger.warning(f"Invalid numeric value '{value_str}' in tag '{full_tag_text}'. Update skipped.")
+            except Exception as e:
+                logger.error(f"Error applying update for tag '{full_tag_text}': {e}")
         else:
-            logger.warning(f"Attempted to update non-existent system '{system_name_raw}' with value '{value_str}'. Update_skipped.")
-        cleaned_story = cleaned_story.replace(full_match_text, "").strip()
-    
-    logger.debug(f"Final active_systems after updates: {current_systems}")
-    logger.debug(f"Cleaned story: '{cleaned_story[:100]}...'")
-    return current_systems, {
-        "cleaned_story": cleaned_story, 
-        "updates_applied": updates_applied_summary, 
+            logger.warning(f"Attempted to update non-existent system '{system_name_raw}' from tag '{full_tag_text}'. Update skipped.")
+        
+        return "" # 매치된 태그를 빈 문자열로 대체하여 제거
+
+    try:
+        # re.DEBUG 플래그는 표준 출력으로 디버깅 정보를 쏟아내므로, 개발 중에만 사용하고 운영에서는 제거해야 합니다.
+        # compiled_pattern = re.compile(system_update_pattern_str, re.DEBUG)
+        # cleaned_story = compiled_pattern.sub(apply_change_and_remove_tag, text_with_updates)
+        cleaned_story = re.sub(system_update_pattern_str, apply_change_and_remove_tag, text_with_updates)
+        logger.debug(f"Regex substitution completed. Cleaned story (first 100 chars): '{cleaned_story[:100]}...'")
+    except re.error as e:
+        logger.error(f"Regex pattern error: {e} for pattern: {system_update_pattern_str}")
+        # 패턴 오류 시, 원본 텍스트를 반환하고 시스템 업데이트는 없도록 처리
+        cleaned_story = text_with_updates # 태그 제거 실패
+        # updates_applied_summary 와 raw_updates_parsed 는 비어있게 됨
+        systems_to_update = current_systems.copy() if current_systems is not None else {}
+    except Exception as e:
+        logger.error(f"Unexpected error during re.sub: {e}")
+        cleaned_story = text_with_updates
+        systems_to_update = current_systems.copy() if current_systems is not None else {}
+
+    logger.debug(f"Final active_systems after updates: {systems_to_update}")
+    return systems_to_update, {
+        "cleaned_story": cleaned_story.strip(),
+        "updates_applied": updates_applied_summary,
         "raw_updates": raw_updates_parsed
     }
 
@@ -239,37 +253,44 @@ def handle_action():
         if session_id not in story_sessions_data or not story_sessions_data[session_id].get('world_id'):
             return jsonify({"error": "잘못된 세션이거나, 아직 시작되지 않은 모험입니다. 먼저 모험을 시작해주세요."}), 400
 
-        choice_id = data.get('choice_id')
-        action_text = data.get('action_text')
+        player_action_text = data.get('action_text') # 사용자가 선택한 선택지의 텍스트 (시스템 태그 없음)
         current_story_history = story_sessions_data[session_id].get('history', "")
+        current_active_systems = story_sessions_data[session_id].get('active_systems', {})
+        world_id_for_setting_cont = story_sessions_data[session_id].get('world_id')
+        world_title_for_response = story_sessions_data[session_id].get('world_title', '알 수 없는 세계관')
+        world_system_configs = story_sessions_data[session_id].get('system_configs', {})
 
-        if action_text:
-            current_story_history += f"플레이어의 행동: {action_text}\n\n"
-        
+        if player_action_text:
+            current_story_history += f"플레이어의 행동: {player_action_text}\n\n"
+        else:
+            current_story_history += f"플레이어의 행동: (선택지를 선택함 - 텍스트 없음)\n\n"
+
         if len(current_story_history) > MAX_HISTORY_CHAR_LENGTH:
             world_id_for_setting = story_sessions_data[session_id].get('world_id')
-            retrieved_world_setting = "이 세계관의 기본 설정"
+            retrieved_world_setting = "이 세계관의 기본 설정" # 기본값
             if world_id_for_setting:
-                client = get_db_client()
+                client = get_db_client() # 현재 요청의 user_jwt를 사용하는 클라이언트가 필요할 수 있음
                 if client:
-                    w_res = client.table("worlds").select("setting").eq("id", world_id_for_setting).maybe_single().execute()
-                    if hasattr(w_res, 'data') and w_res.data and w_res.data.get('setting'):
-                        retrieved_world_setting = w_res.data.get('setting')
+                    try:
+                        w_res = client.table("worlds").select("setting").eq("id", world_id_for_setting).maybe_single().execute()
+                        if hasattr(w_res, 'data') and w_res.data and w_res.data.get('setting'):
+                            retrieved_world_setting = w_res.data.get('setting')
+                        else:
+                            logger.warning(f"summarize: World setting not found for world_id {world_id_for_setting}")
+                    except Exception as e:
+                        logger.error(f"summarize: Error fetching world setting for {world_id_for_setting}: {e}")
             
-            summarized_history = summarize_story_with_gemini(current_story_history, retrieved_world_setting)
+            logger.debug(f"Summarizing history. Original length: {len(current_story_history)}. World setting snippet: {retrieved_world_setting[:100]}...")
+            # 수정된 함수 호출 방식: world_setting_for_summary 인자 명시적 전달
+            summarized_history = summarize_story_with_gemini(story_text_to_summarize=current_story_history, world_setting_for_summary=retrieved_world_setting)
             if summarized_history:
+                logger.debug(f"History summarized. New length: {len(summarized_history)}")
                 current_story_history = summarized_history + "\n\n(이전 내용 요약됨)\n\n"
+            else:
+                logger.warning("History summarization failed or returned empty.")
         
-        current_active_systems = story_sessions_data[session_id].get('active_systems', {})
-        systems_info_for_prompt = ""
-        if current_active_systems:
-            systems_info_for_prompt = "현재 캐릭터/상황 정보:\n"
-            for sys_name, sys_val in current_active_systems.items():
-                systems_info_for_prompt += f"- {sys_name}: {sys_val}\n"
-            systems_info_for_prompt += "\n"
-
-        world_id_for_setting_cont = story_sessions_data[session_id].get('world_id')
-        retrieved_world_setting_cont = "이 세계관의 설정"
+        # AI에게 다음 스토리 생성을 요청하기 위한 세계관 설정 (retrieved_world_setting_cont)
+        retrieved_world_setting_cont = "이 세계관의 설정" # 기본값
         if world_id_for_setting_cont:
             client_cont = get_db_client()
             if client_cont:
@@ -277,59 +298,88 @@ def handle_action():
                 if hasattr(w_res_cont, 'data') and w_res_cont.data and w_res_cont.data.get('setting'):
                     retrieved_world_setting_cont = w_res_cont.data.get('setting')
         
-        # 프롬프트에 전달할 시스템 목록 문자열 생성 (gemini 호출 직전)
+        # Gemini API 호출 시에는 현재 시스템 상태를 전달 (아직 AI 응답 전이므로 이전 턴의 시스템 상태)
         current_systems_list_for_prompt = ", ".join([f"{name} (현재값: {value})" for name, value in current_active_systems.items()]) if current_active_systems else "없음. 시스템 변경 지시를 내리지 마세요."
 
         prompt_to_gemini = DEFAULT_PROMPT_TEMPLATE.format(
-            world_setting_summary=retrieved_world_setting_cont, # world_setting_summary 키에 전체 세계관 설정 전달
-            story_summary=current_story_history, # 이야기 요약 (현재는 전체 히스토리 전달, 필요시 요약 로직 추가)
-            last_story_segment="", #  TODO: 마지막 AI 응답만 분리해서 전달하는 로직 추가 필요 (현재는 story_history에 포함됨)
-            user_action=action_text if action_text else "(선택지를 선택함)", # 사용자 행동 전달
-            current_systems_list_for_prompt=current_systems_list_for_prompt # 현재 시스템 목록 전달
+            world_setting_summary=retrieved_world_setting_cont, 
+            story_summary=current_story_history, 
+            last_story_segment="", 
+            user_action=player_action_text if player_action_text else "(선택지를 선택함)", 
+            current_systems_list_for_prompt=current_systems_list_for_prompt
         )
         logger.debug(f"Prompt for continue_adventure for session {session_id}: {prompt_to_gemini[:300]}...")
 
         try:
-            generated_story_part, choices = call_gemini_api(prompt_to_gemini)
-            logger.debug(f"Gemini response for session {session_id}: Story part - '{generated_story_part[:100]}...', Choices - {choices}")
+            generated_story_part, choices_from_ai = call_gemini_api(prompt_to_gemini)
+            logger.debug(f"Gemini response for session {session_id}:\nStory part: '{generated_story_part}'\nChoices: {choices_from_ai}")
 
-            # AI 응답에서 시스템 값 변경 파싱 및 적용
+            # AI가 생성한 스토리 본문(generated_story_part)에서 시스템 업데이트 태그를 파싱하고 시스템 값을 업데이트합니다.
+            # current_active_systems는 이 함수 호출 전에 이미 플레이어의 이전 행동에 의해 업데이트되었을 수 있으므로,
+            # AI 응답에 의한 추가적인 변경을 여기에 반영합니다.
             if generated_story_part:
-                logger.debug(f"Attempting to parse system updates for session {session_id}. Current systems: {current_active_systems}")
-                # parse_and_apply_system_updates 함수가 튜플 (updated_systems, info_dict)을 반환한다고 가정.
-                updated_systems, parse_info = parse_and_apply_system_updates(generated_story_part, current_active_systems.copy()) # 원본 수정을 피하기 위해 복사본 전달
+                logger.debug(f"Applying system updates FROM AI STORY TEXT for session {session_id}. Systems BEFORE this AI response: {current_active_systems}")
                 
-                generated_story_part = parse_info.get("cleaned_story", generated_story_part) # 시스템 태그 제거된 텍스트
-                story_sessions_data[session_id]['active_systems'] = updated_systems # 변경된 시스템 값 세션에 반영
-                logger.debug(f"Systems after update for session {session_id}: {updated_systems}. Applied: {parse_info.get('updates_applied')}")
+                # parse_and_apply_system_updates는 (업데이트된 시스템 dict, 파싱 정보 dict)를 반환합니다.
+                # 여기서 current_active_systems.copy()를 전달하여 원본 불변성을 유지합니다.
+                processed_systems_after_ai_story, story_parse_info = parse_and_apply_system_updates(generated_story_part, current_active_systems.copy())
+                
+                cleaned_generated_story_part = story_parse_info.get("cleaned_story", generated_story_part) # 태그 제거된 스토리 본문
+                updates_applied_from_story = story_parse_info.get("updates_applied", {})
+                
+                if updates_applied_from_story: # AI 스토리 본문에 의해 실제로 시스템 변경이 있었다면
+                    current_active_systems = processed_systems_after_ai_story # 현재 active_systems를 AI 본문에 의한 변경으로 업데이트
+                    story_sessions_data[session_id]['active_systems'] = current_active_systems
+                    logger.info(f"Systems updated based on AI story text for session {session_id}. Applied: {updates_applied_from_story}")
+                else:
+                    logger.info(f"No system updates found or applied from AI story text for session {session_id}.")
+                logger.debug(f"Cleaned story part after AI response processing: '{cleaned_generated_story_part}'")
+            else:
+                cleaned_generated_story_part = "" # AI 응답이 비었을 경우
+            
+            # 선택지 처리: AI가 프롬프트 지시를 따라 선택지에는 태그를 포함하지 않을 것으로 예상합니다.
+            # 만약 포함 가능성을 대비하려면, 여기서 각 choice['text']에 대해서도 태그 제거 로직을 추가할 수 있습니다.
+            # (단, 이때는 시스템 값을 변경하지 않고 텍스트만 정제해야 함)
+            processed_choices_for_client = []
+            if choices_from_ai:
+                for choice_item in choices_from_ai:
+                    # 간단히 태그 제거 (시스템 값 변경 X)
+                    _, choice_parse_info = parse_and_apply_system_updates(choice_item['text'], {})
+                    cleaned_choice_text = choice_parse_info.get("cleaned_story", choice_item['text'])
+                    processed_choices_for_client.append({
+                        "id": choice_item['id'],
+                        "text": cleaned_choice_text 
+                        # "original_text_with_tags": choice_item['text'] # 이전 로직, 이제 불필요
+                    })
+            else:
+                 processed_choices_for_client = []
 
         except Exception as e:
             logger.error(f"Error during Gemini call or system update parsing for session {session_id}: {str(e)}")
             logger.error(traceback.format_exc())
-            # 이 경우, 클라이언트에게 오류를 알리고, 이야기는 진행시키지 않거나, AI 응답 없이 현재 상태만 반환할 수 있음
-            # 우선은 빈 응답과 선택지를 보내서 멈추도록 함.
             response_data = {
                 "error": f"AI 응답 처리 중 오류 발생: {str(e)}",
                 "new_story_segment": "AI 응답을 처리하는 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.",
-                "choices": [], # 선택지를 비워서 진행 불가하도록 유도
-                "context": {'history': current_story_history}, # 현재까지의 히스토리는 유지
-                'active_systems': story_sessions_data[session_id].get('active_systems', {}), # 시스템 변경 시도 전 상태
-                'system_configs': story_sessions_data[session_id].get('system_configs', {})
+                "choices": [], 
+                "context": {'history': current_story_history},
+                'active_systems': current_active_systems, # 오류 발생 시점의 (업데이트 시도 전 또는 후의) 시스템 상태
+                'system_configs': world_system_configs
             }
-            return jsonify(response_data), 500 # 500 에러 명시
+            return jsonify(response_data), 500
 
-        current_story_history += f"AI 응답: {generated_story_part}\n\n"
+        current_story_history += f"AI 응답: {cleaned_generated_story_part}\n\n"
         story_sessions_data[session_id]['history'] = current_story_history
-        story_sessions_data[session_id]['last_choices'] = choices
-        story_sessions_data[session_id]['last_ai_response'] = generated_story_part
+        story_sessions_data[session_id]['last_choices'] = processed_choices_for_client # AI가 생성한 (태그 없는) 선택지 그대로 저장
+        story_sessions_data[session_id]['last_ai_response'] = cleaned_generated_story_part
         
         response_data = {
-            'new_story_segment': generated_story_part,
-            'choices': choices,
+            'new_story_segment': cleaned_generated_story_part,
+            'choices': processed_choices_for_client, 
             'context': {'history': current_story_history},
-            'active_systems': story_sessions_data[session_id].get('active_systems', {}),
-            'system_configs': story_sessions_data[session_id].get('system_configs', {})
+            'active_systems': current_active_systems, # 최종적으로 업데이트된 (또는 변경 없는) 시스템 상태
+            'system_configs': world_system_configs
         }
+        logger.debug(f"Data being sent to client for session {session_id}: {response_data}") # 최종 응답 데이터 로깅
 
     elif action_type == "load_story":
         session_id = data.get("session_id")
