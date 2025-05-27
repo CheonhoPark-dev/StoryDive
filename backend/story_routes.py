@@ -28,8 +28,22 @@ story_sessions_data = {}
 # 시스템 업데이트 파싱 및 적용 함수
 def parse_and_apply_system_updates(text_with_updates, current_systems):
     logger.debug(f"Parsing system updates from text: '{text_with_updates[:100]}...', current_systems: {current_systems}")
-    system_update_pattern = r'\\[SYSTEM_UPDATE:\\s*(.+?)\\s*([+\\-=])\\s*(-?[0-9.]+)\\s*\\]'
-    system_update_matches = list(re.finditer(system_update_pattern, text_with_updates))
+    system_update_pattern = r'\\[SYSTEM_UPDATE:\\s*(.+?)\\s*([+=\-])\\s*(-?[0-9.]+)\s*\\]'
+    
+    system_update_matches = [] # 미리 초기화
+    try:
+        # 정규식 디버깅 정보 출력 시도
+        logger.debug(f"Compiling regex pattern with re.DEBUG: {system_update_pattern}")
+        # re.DEBUG 플래그는 컴파일 시점에 표준 출력으로 디버깅 정보를 출력합니다.
+        # 실제 운영 환경에서는 이 플래그 사용에 주의해야 합니다.
+        compiled_pattern = re.compile(system_update_pattern, re.DEBUG) 
+        system_update_matches = list(compiled_pattern.finditer(text_with_updates))
+        logger.debug(f"Regex finditer completed. Number of matches: {len(system_update_matches)}")
+    except re.error as e:
+        logger.error(f"Regex error during compilation or finditer for pattern '{system_update_pattern}': {e}")
+        # 오류 발생 시, 빈 리스트를 사용하거나, 함수 호출자에게 오류를 전파할 수 있습니다.
+        # 여기서는 빈 리스트로 계속 진행하여 cleaned_story만 반환하도록 합니다.
+        pass # system_update_matches는 이미 빈 리스트로 초기화됨
     
     cleaned_story = text_with_updates
     updates_applied_summary = {}

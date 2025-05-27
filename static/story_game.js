@@ -298,10 +298,24 @@ export class StoryGameManager {
     handleApiError(error, actionType) {
         let errorMessage = `API 호출 중 오류가 발생했습니다 (${actionType}). 다시 시도해주세요.`;
         
+        // 추가적인 오류 정보 로깅
+        console.error(`[DEBUG handleApiError] Original error object for actionType '${actionType}':`, error);
+        if (error.response && typeof error.response.json === 'function') {
+            error.response.json().then(jsonError => {
+                console.error("[DEBUG handleApiError] Parsed JSON error from response:", jsonError);
+            }).catch(e => {
+                console.error("[DEBUG handleApiError] Failed to parse JSON error from response:", e);
+            });
+        } else if (error.request) {
+            console.error("[DEBUG handleApiError] Error request object:", error.request);
+        }
+
         if (error.message && error.message.includes("not valid JSON")) {
             errorMessage = `서버 응답 오류입니다. 관리자에게 문의하거나 잠시 후 다시 시도해주세요. (JSON 파싱 실패)`;
         } else if (error.message) {
+            // 백엔드에서 전달된 상세 오류 메시지를 포함하도록 수정
             errorMessage = `오류: ${error.message}. 잠시 후 다시 시도해주세요.`;
+            console.log(`[DEBUG handleApiError] Using error.message for display: "${error.message}"`);
         }
         
         this.displayStory(errorMessage);
