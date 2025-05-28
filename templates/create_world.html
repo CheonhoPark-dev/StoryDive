@@ -5,6 +5,104 @@
 {% block page_header %}새로운 세계관 창조하기{% endblock %}
 
 {% block content %}
+<style>
+/* 게임 시스템 설정 전체 박스 스타일 */
+.systems-section-container {
+    /* 이 컨테이너의 너비가 고정되거나, 부모에 의해 제한되어야 합니다. */
+    /* 예를 들어, 폼 전체 너비에 맞춰지도록 합니다. */
+    /* 이 클래스를 <div class="mb-6 p-4 border border-gray-700 rounded-lg">에 추가하거나, */
+    /* 아래 #create-world-systems-container 또는 #edit-world-systems-container의 부모에 적용 */
+    overflow: hidden; /* 내부 wrapper가 넘칠 때 이 컨테이너는 늘어나지 않도록 */
+}
+
+#create-world-systems-container, #edit-world-systems-container {
+    /* 이 요소 자체가 아니라, 이 안의 wrapper가 스크롤을 담당 */
+    /* 너비가 내부 아이템에 따라 늘어나지 않도록 설정 */
+    /* padding-right을 주어 스크롤바가 내용물을 가리지 않도록 할 수 있으나, */
+    /* wrapper에서 padding-bottom으로 처리했으므로 여기선 불필요할 수 있음 */
+}
+
+.systems-flex-wrapper {
+    display: flex;
+    overflow-x: auto; /* 가로 스크롤 활성화 */
+    overflow-y: hidden; /* 세로 스크롤은 필요 없음 */
+    padding-bottom: 1rem; /* 스크롤바 공간 확보 */
+    gap: 1rem; /* 아이템 간 간격 */
+    /* min-height: 230px; */ /* 시스템 없을 때 큰 여백을 만들던 부분 제거 또는 조정 */
+    /* 아이템이 있을 때 아이템 높이에 맞춰 자연스럽게 늘어남 */
+    /* width: 100%; /* 부모 컨테이너에 꽉 차도록. 부모가 너비 제한을 가져야 함 */
+}
+
+.system-item {
+    flex: 0 0 280px; /* 각 시스템 아이템의 너비 고정, flex-basis를 사용 */
+    /* width는 flex-basis로 대체했으므로 제거 가능 */
+    padding: 1rem;
+    border: 1px solid #4A5568; /* gray-600 */
+    border-radius: 0.5rem; /* rounded-lg */
+    background-color: #2D3748; /* gray-800 */
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.system-item label {
+    display: block;
+    margin-bottom: 0.25rem; /* mb-1 */
+    font-size: 0.875rem; /* text-sm */
+    color: #9CA3AF; /* gray-400 */
+    font-weight: 500; /* font-medium */
+}
+
+.system-item input[type="text"],
+.system-item input[type="number"],
+.system-item textarea {
+    width: 100%;
+    padding: 0.75rem; /* p-3 */
+    font-size: 0.875rem; /* text-sm */
+    background-color: #1F2937; /* gray-900 또는 어두운 회색 */
+    border: 1px solid #4A5568; /* gray-600 */
+    color: #D1D5DB; /* gray-300 */
+    border-radius: 0.375rem; /* rounded-md */
+    box-sizing: border-box; /* 패딩과 테두리가 너비에 포함되도록 */
+}
+
+.system-item input[type="text"]:focus,
+.system-item input[type="number"]:focus,
+.system-item textarea:focus {
+    outline: none;
+    border-color: #6366F1; /* indigo-500 */
+    /* box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5); /* 선택적 focus ring */
+}
+
+.system-item textarea {
+    min-height: 70px; /* 설명 필드 최소 높이 조정 */
+}
+
+.system-item .btn-danger { /* 삭제 버튼 스타일 일관성 */
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem; /* text-xs */
+    margin-top: auto; /* 버튼을 아이템 하단에 위치 */
+}
+
+/* 스크롤바 스타일 (선택 사항) */
+.systems-flex-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.systems-flex-wrapper::-webkit-scrollbar-track {
+    background: #1A202C; /* gray-900 */
+    border-radius: 4px;
+}
+
+.systems-flex-wrapper::-webkit-scrollbar-thumb {
+    background: #4A5568; /* gray-600 */
+    border-radius: 4px;
+}
+
+.systems-flex-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #718096; /* gray-500 */
+}
+</style>
 <div id="create-world-form-container" class="content-card p-8 rounded-xl shadow-lg mb-8 md:col-span-2 lg:col-span-3 card-hover">
     <h3 class="text-2xl font-semibold mb-6 text-header text-center gradient-text">새로운 세계관 정보 입력</h3>
     <form id="create-world-form" class="space-y-6" enctype="multipart/form-data">
@@ -16,10 +114,13 @@
         </div>
 
         <!-- 게임 시스템 설정 섹션 -->
-        <div class="mb-6 p-4 border border-gray-700 rounded-lg">
+        <div class="mb-6 p-4 border border-gray-700 rounded-lg systems-section-container">
             <h4 class="text-lg font-medium text-subheader mb-3">게임 시스템 설정 (선택 사항)</h4>
-            <div id="create-world-systems-container" class="space-y-4">
-                <p class="text-sm text-gray-500">아직 추가된 시스템이 없습니다. "시스템 추가" 버튼을 눌러 캐릭터 스탯, 재화, 포인트 등을 설정하세요.</p>
+            <div id="create-world-systems-container">
+                <div class="systems-flex-wrapper">
+                    <!-- 시스템 아이템들이 여기에 동적으로 추가됩니다 (JavaScript에 의해) -->
+                </div>
+                <p id="no-systems-message" class="text-sm text-gray-500 mt-2">아직 추가된 시스템이 없습니다. "시스템 추가" 버튼을 눌러 캐릭터 스탯, 재화, 포인트 등을 설정하세요.</p>
             </div>
             <button type="button" id="create-add-world-system-btn"
                     class="mt-4 btn-secondary text-white px-4 py-2 rounded-md text-sm font-medium transition hover:bg-teal-600 btn-glow">

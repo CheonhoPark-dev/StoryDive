@@ -5,6 +5,92 @@
 {% block page_header %}{{ world.title if world else '세계관' }} 정보 수정{% endblock %}
 
 {% block content %}
+<style>
+/* create_world.html과 동일한 스타일 적용 */
+.systems-section-container {
+    overflow: hidden;
+}
+
+#create-world-systems-container, #edit-world-systems-container {
+    /* 특별한 스타일 불필요 */
+}
+
+.systems-flex-wrapper {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 1rem;
+    gap: 1rem;
+    /* min-height: 230px; */ /* 시스템 없을 때 큰 여백을 만들던 부분 제거 또는 조정 */
+}
+
+.system-item {
+    flex: 0 0 280px;
+    padding: 1rem;
+    border: 1px solid #4A5568; /* gray-600 */
+    border-radius: 0.5rem; /* rounded-lg */
+    background-color: #2D3748; /* gray-800 */
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.system-item label {
+    display: block;
+    margin-bottom: 0.25rem; 
+    font-size: 0.875rem; 
+    color: #9CA3AF; /* gray-400 */
+    font-weight: 500; 
+}
+
+.system-item input[type="text"],
+.system-item input[type="number"],
+.system-item textarea {
+    width: 100%;
+    padding: 0.75rem; 
+    font-size: 0.875rem; 
+    background-color: #1F2937; 
+    border: 1px solid #4A5568; 
+    color: #D1D5DB; 
+    border-radius: 0.375rem; 
+    box-sizing: border-box; 
+}
+
+.system-item input[type="text"]:focus,
+.system-item input[type="number"]:focus,
+.system-item textarea:focus {
+    outline: none;
+    border-color: #6366F1; /* indigo-500 */
+}
+
+.system-item textarea {
+    min-height: 70px; 
+}
+
+.system-item .btn-danger {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem; 
+    margin-top: auto; 
+}
+
+.systems-flex-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.systems-flex-wrapper::-webkit-scrollbar-track {
+    background: #1A202C;
+    border-radius: 4px;
+}
+
+.systems-flex-wrapper::-webkit-scrollbar-thumb {
+    background: #4A5568;
+    border-radius: 4px;
+}
+
+.systems-flex-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #718096;
+}
+</style>
 <div id="edit-world-form-container" class="content-card p-8 rounded-xl shadow-lg mb-8 md:col-span-2 lg:col-span-3 card-hover">
     {% if world %}
     <h3 class="text-2xl font-semibold mb-6 text-header text-center gradient-text">세계관 정보 수정: {{ world.title }}</h3>
@@ -15,27 +101,22 @@
                    class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
         </div>
 
-        <!-- Cover Image Upload Section -->
-        <div class="mb-6 p-4 border border-gray-700 rounded-lg">
-            <h4 class="text-lg font-medium text-subheader mb-3">커버 이미지 (선택 사항)</h4>
-            <div class="flex items-center space-x-4">
-                <div class="shrink-0">
-                    <img id="edit-cover-image-preview" 
-                         src="{{ world.cover_image_url or url_for('static', filename='images/default_world_cover.png') }}" 
-                         alt="커버 이미지 미리보기" 
-                         class="h-24 w-24 object-cover rounded-md border border-gray-600 bg-gray-700"
-                         onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/default_world_cover.png') }}';">
+        <!-- 2. 게임 시스템 설정 섹션 (수정 폼) -->
+        <div class="mb-6 p-4 border border-gray-700 rounded-lg systems-section-container"> 
+            <h4 class="text-lg font-medium text-subheader mb-3">게임 시스템 설정 (선택 사항)</h4>
+            <div id="edit-world-systems-container"> 
+                <div class="systems-flex-wrapper">
+                    <!-- 시스템 아이템들이 여기에 동적으로 추가됩니다 (JavaScript에 의해) -->
                 </div>
-                <label class="block">
-                    <span class="sr-only">커버 이미지 선택</span>
-                    <input type="file" id="edit-cover-image-input" name="cover_image_file" accept="image/png, image/jpeg, image/jpg, image/gif, image/webp"
-                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-indigo-50 hover:file:bg-indigo-700 transition cursor-pointer">
-                </label>
+                <p id="edit-no-systems-message" class="text-sm text-gray-500 mt-2 {% if not world.systems or world.systems|length == 0 %}hidden{% endif %}">아직 추가된 시스템이 없습니다. "시스템 추가" 버튼을 눌러 캐릭터 스탯, 재화, 포인트 등을 설정하세요.</p>
             </div>
-            <p class="mt-2 text-xs text-gray-500">PNG, JPG, GIF, WEBP 파일 (최대 5MB).</p>
+            <button type="button" id="edit-add-world-system-btn"
+                    class="mt-4 btn-secondary text-white px-4 py-2 rounded-md text-sm font-medium transition hover:bg-teal-600 btn-glow">
+                <i class="fas fa-plus mr-1"></i> 시스템 추가
+            </button>
         </div>
-        <!-- End Cover Image Upload Section -->
 
+        <!-- 3. 세계관 상세 설정 -->
         <div>
             <label for="edit-world-setting" class="block text-sm font-medium text-subheader mb-1">세계관 상세 설정 <span class="text-red-500">*</span></label>
             <textarea id="edit-world-setting" name="setting" rows="6" required
@@ -59,23 +140,31 @@
                    placeholder="예: 마법, 학원물, 동물, 비밀 (선택 사항)">
         </div>
         
-        <!-- 게임 시스템 설정 섹션 (수정 폼) -->
-        <div class="mb-6 p-4 border border-gray-700 rounded-lg">
-            <h4 class="text-lg font-medium text-subheader mb-3">게임 시스템 설정 (선택 사항)</h4>
-            <div id="edit-world-systems-container" class="space-y-4">
-                <p class="text-sm text-gray-500 {% if world.systems and world.systems|length > 0 %}hidden{% endif %}">아직 추가된 시스템이 없습니다. "시스템 추가" 버튼을 눌러 캐릭터 스탯, 재화, 포인트 등을 설정하세요.</p>
-            </div>
-            <button type="button" id="edit-add-world-system-btn"
-                    class="mt-4 btn-secondary text-white px-4 py-2 rounded-md text-sm font-medium transition hover:bg-teal-600 btn-glow">
-                <i class="fas fa-plus mr-1"></i> 시스템 추가
-            </button>
-        </div>
-
+        <!-- 4. 이야기 시작점 -->
         <div>
             <label for="edit-world-starting-point" class="block text-sm font-medium text-subheader mb-1">이야기 시작점 (선택 사항)</label>
             <textarea id="edit-world-starting-point" name="starting_point" rows="4"
                       class="w-full p-3 input-field rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">{{ world.starting_point or '' }}</textarea>
         </div>
+
+        <!-- 5. Cover Image Upload Section - 스타일 통일성 강화 -->
+        <div> 
+            <label for="edit-cover-image-input" class="block text-sm font-medium text-subheader mb-1">커버 이미지 (선택 사항)</label>
+            <div class="flex items-center space-x-4 p-3 input-field rounded-lg_dummy_class_for_potential_wrapper_if_needed_or_remove_if_not"> 
+                <img id="edit-cover-image-preview" 
+                     src="{{ world.cover_image_url or url_for('static', filename='images/default_world_cover.png') }}" 
+                     alt="커버 이미지 미리보기" 
+                     class="h-20 w-20 object-cover rounded-md border border-gray-600 bg-gray-700" /* 크기 약간 줄임 */
+                     onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/default_world_cover.png') }}';">
+                <input type="file" id="edit-cover-image-input" name="cover_image_file" accept="image/png, image/jpeg, image/jpg, image/gif, image/webp"
+                       class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 
+                              file:rounded-full file:border-0 file:text-sm file:font-semibold 
+                              file:bg-indigo-500 file:text-white hover:file:bg-indigo-600 
+                              transition cursor-pointer input-field_dummy_class_for_file_input"> 
+            </div>
+            <p class="mt-1 text-xs text-gray-500 pl-1">PNG, JPG, GIF, WEBP 파일 (최대 5MB).</p>
+        </div>
+        
         <div class="flex justify-end space-x-3">
             <button type="button" id="cancel-edit-world-btn" class="btn-gray text-white px-6 py-3 rounded-lg font-medium transition">
                 취소 (내 세계관 목록으로)

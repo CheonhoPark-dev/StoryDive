@@ -348,50 +348,22 @@ export class WorldManager {
         }
     }
 
-    async handleUpdateWorld(event, worldIdFromPage) {
+    async handleUpdateWorld(event, worldIdFromPage, formDataToSubmit) {
         const worldIdToUpdate = worldIdFromPage || this.editingWorldId;
+        const editForm = document.getElementById('edit-world-form');
         
-        if (!worldIdToUpdate || !document.getElementById('edit-world-form')) {
+        if (!worldIdToUpdate || !editForm) {
             console.error("수정할 World ID가 없거나 수정 폼을 찾을 수 없습니다.");
             const feedbackEl = document.getElementById('edit-world-feedback');
             if (feedbackEl) feedbackEl.textContent = '수정할 대상 ID가 없거나 폼이 존재하지 않습니다.';
             return;
         }
 
-        const editForm = document.getElementById('edit-world-form');
-        const formData = new FormData(editForm); // 폼 요소로부터 직접 FormData 생성
-        
-        // 시스템 정보는 JSON 문자열로 변환하여 FormData에 추가
-        const systemsArray = [];
-        const systemConfigsObject = {};
-        const editSystemRows = document.querySelectorAll('#edit-world-systems-container .system-row');
-        
-        editSystemRows.forEach(row => {
-            const nameInput = row.querySelector('.system-name');
-            const valueInput = row.querySelector('.system-initial-value');
-            const descInput = row.querySelector('.system-description');
-            
-            if (nameInput && valueInput && nameInput.value.trim()) {
-                const systemName = nameInput.value.trim();
-                systemsArray.push(systemName);
-                systemConfigsObject[systemName] = {
-                    initial: parseFloat(valueInput.value) || 0,
-                    description: descInput ? descInput.value.trim() : ''
-                };
-            }
-        });
+        const formData = formDataToSubmit;
 
-        formData.append('systems', JSON.stringify(systemsArray));
-        formData.append('system_configs', JSON.stringify(systemConfigsObject));
-
-        // is_public 체크박스 값 처리 (FormData는 체크되지 않은 체크박스를 보내지 않음)
-        if (!formData.has('is_public')) {
-            formData.append('is_public', 'off'); // 또는 false, 백엔드에서 처리 방식에 따라 결정
-        }
-        
         // FormData 내용 확인 (디버깅용)
         for (let [key, value] of formData.entries()) {
-            console.log(`[DEBUG handleUpdateWorld] FormData: ${key}: ${value}`);
+            console.log(`[DEBUG handleUpdateWorld] FormData received: ${key}: ${value}`);
         }
 
         const title = formData.get('title');
@@ -411,8 +383,7 @@ export class WorldManager {
         }
 
         try {
-            // api.updateWorld가 FormData를 직접 받도록 수정 필요
-            await api.updateWorld(worldIdToUpdate, formData); 
+            await api.updateWorld(worldIdToUpdate, formData);
             const feedbackEl = document.getElementById('edit-world-feedback');
             if (feedbackEl) {
                 feedbackEl.textContent = '세계관이 성공적으로 업데이트되었습니다!';
@@ -453,83 +424,104 @@ export class WorldManager {
 
     // 시스템 입력 인터페이스 관련 메서드들
     createSystemInputRow(systemName = '', initialValue = '', description = '', isEditForm = false) {
-        const systemRow = document.createElement('div');
-        systemRow.className = 'p-3 border border-gray-600 rounded-md space-y-2 system-row';
+        const systemItem = document.createElement('div');
+        systemItem.className = 'system-item';
 
         const nameLabel = document.createElement('label');
-        nameLabel.className = 'block text-xs font-medium text-gray-400';
         nameLabel.textContent = '시스템 이름 (예: 체력, 골드, 마나)';
+        nameLabel.htmlFor = `system-name-${Date.now()}-${Math.random()}`;
         
         const nameInput = document.createElement('input');
         nameInput.type = 'text';
-        nameInput.className = 'w-full p-2 input-field rounded-md system-name';
+        nameInput.className = 'system-name';
         nameInput.placeholder = '시스템 이름';
         nameInput.value = systemName;
         nameInput.required = true;
+        nameInput.id = nameLabel.htmlFor;
 
         const valueLabel = document.createElement('label');
-        valueLabel.className = 'block text-xs font-medium text-gray-400 mt-1';
         valueLabel.textContent = '초기값';
+        valueLabel.htmlFor = `system-initial-${Date.now()}-${Math.random()}`;
         
         const valueInput = document.createElement('input');
         valueInput.type = 'number';
-        valueInput.className = 'w-full p-2 input-field rounded-md system-initial-value';
+        valueInput.className = 'system-initial-value';
         valueInput.placeholder = '0';
         valueInput.value = initialValue;
         valueInput.required = true;
+        valueInput.id = valueLabel.htmlFor;
 
         const descLabel = document.createElement('label');
-        descLabel.className = 'block text-xs font-medium text-gray-400 mt-1';
         descLabel.textContent = '설명 (선택 사항)';
+        descLabel.htmlFor = `system-description-${Date.now()}-${Math.random()}`;
         
-        const descInput = document.createElement('input');
-        descInput.type = 'text';
-        descInput.className = 'w-full p-2 input-field rounded-md system-description';
+        const descInput = document.createElement('textarea');
+        descInput.className = 'system-description';
         descInput.placeholder = '이 시스템에 대한 간단한 설명';
         descInput.value = description;
+        descInput.rows = 2;
+        descInput.id = descLabel.htmlFor;
 
         const deleteBtn = document.createElement('button');
         deleteBtn.type = 'button';
-        deleteBtn.className = 'mt-2 btn-danger text-white px-3 py-1 rounded-md text-xs font-medium transition';
+        deleteBtn.className = 'btn-danger remove-system-btn';
         deleteBtn.innerHTML = '<i class="fas fa-trash-alt mr-1"></i>삭제';
         deleteBtn.addEventListener('click', () => {
-            systemRow.remove();
+            systemItem.remove();
             const containerId = isEditForm ? 'edit-world-systems-container' : 'create-world-systems-container';
-            const container = document.getElementById(containerId);
-            if (container && container.querySelectorAll('.system-row').length === 0) {
-                const p = container.querySelector('p.text-gray-500');
-                if (p) p.classList.remove('hidden');
+            const systemsContainer = document.getElementById(containerId);
+            if (systemsContainer) {
+                const wrapper = systemsContainer.querySelector('.systems-flex-wrapper');
+                const noSystemsMsgId = isEditForm ? 'edit-no-systems-message' : 'no-systems-message';
+                const noSystemsMessage = document.getElementById(noSystemsMsgId);
+                if (wrapper && noSystemsMessage) {
+                    if (wrapper.querySelectorAll('.system-item').length === 0) {
+                        noSystemsMessage.classList.remove('hidden');
+                    } else {
+                        noSystemsMessage.classList.add('hidden');
+                    }
+                }
             }
         });
 
-        systemRow.appendChild(nameLabel);
-        systemRow.appendChild(nameInput);
-        systemRow.appendChild(valueLabel);
-        systemRow.appendChild(valueInput);
-        systemRow.appendChild(descLabel);
-        systemRow.appendChild(descInput);
-        systemRow.appendChild(deleteBtn);
+        systemItem.appendChild(nameLabel);
+        systemItem.appendChild(nameInput);
+        systemItem.appendChild(valueLabel);
+        systemItem.appendChild(valueInput);
+        systemItem.appendChild(descLabel);
+        systemItem.appendChild(descInput);
+        systemItem.appendChild(deleteBtn);
         
-        return systemRow;
+        return systemItem;
     }
 
     setupSystemInputInterface(containerId, addButtonId, isEditForm = false) {
         console.log(`[DEBUG] setupSystemInputInterface called for container: ${containerId}, button: ${addButtonId}`);
         
-        const container = document.getElementById(containerId);
+        const systemsContainer = document.getElementById(containerId);
         const addButton = document.getElementById(addButtonId);
-        const initialMsg = container ? container.querySelector('p.text-gray-500') : null;
+        
+        const systemsFlexWrapper = systemsContainer ? systemsContainer.querySelector('.systems-flex-wrapper') : null;
+        const noSystemsMsgId = isEditForm ? 'edit-no-systems-message' : 'no-systems-message';
+        const noSystemsMessage = document.getElementById(noSystemsMsgId);
 
-        if (addButton && container) {
+        if (addButton && systemsFlexWrapper && noSystemsMessage) {
             console.log(`[DEBUG] Adding click listener to button: ${addButtonId}`);
             addButton.addEventListener('click', () => {
                 console.log(`[DEBUG] '${addButtonId}' clicked. isEditForm: ${isEditForm}`);
-                const newRow = this.createSystemInputRow('', '0', '', isEditForm);
-                container.appendChild(newRow);
-                if (initialMsg) initialMsg.classList.add('hidden');
+                const newItem = this.createSystemInputRow('', '0', '', isEditForm);
+                systemsFlexWrapper.appendChild(newItem);
+                noSystemsMessage.classList.add('hidden');
             });
+
+            if (systemsFlexWrapper.querySelectorAll('.system-item').length > 0) {
+                noSystemsMessage.classList.add('hidden');
+            } else {
+                noSystemsMessage.classList.remove('hidden');
+            }
+
         } else {
-            console.warn(`[DEBUG] setupSystemInputInterface: addButton or container not found.`);
+            console.warn(`[DEBUG] setupSystemInputInterface: addButton, systemsFlexWrapper, or noSystemsMessage not found. Container: ${systemsContainer}, AddButton: ${addButton}, Wrapper: ${systemsFlexWrapper}, Message: ${noSystemsMessage}`);
         }
     }
 

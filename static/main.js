@@ -148,10 +148,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 function setupCreateWorldPage() {
     const createWorldForm = document.getElementById('create-world-form');
     const cancelCreateWorldBtn = document.getElementById('cancel-create-world-btn');
-    const createWorldSystemsContainer = document.getElementById('create-world-systems-container');
-    const createAddWorldSystemBtn = document.getElementById('create-add-world-system-btn');
+    // createWorldSystemsContainer는 전체 시스템 UI 섹션을 감싸는 div의 ID여야 합니다.
+    // const createWorldSystemsContainer = document.getElementById('create-world-systems-container');
+    // const createAddWorldSystemBtn = document.getElementById('create-add-world-system-btn');
 
-    if (createWorldSystemsContainer && createAddWorldSystemBtn && window.worldManager) {
+    if (window.worldManager) {
+        // setupSystemInputInterface 호출은 worldManager 내부에서 DOM 요소를 찾도록 수정되었거나,
+        // 올바른 ID를 전달해야 합니다. create-world-systems-container는 시스템 아이템들이 들어갈 flex wrapper의 부모입니다.
         window.worldManager.setupSystemInputInterface('create-world-systems-container', 'create-add-world-system-btn', false);
     }
 
@@ -167,11 +170,12 @@ function setupCreateWorldPage() {
             const systemsArray = [];
             const systemConfigsObject = {};
             
-            const systemRows = document.querySelectorAll('#create-world-systems-container .system-row');
-            systemRows.forEach(row => {
-                const nameInput = row.querySelector('.system-name');
-                const valueInput = row.querySelector('.system-initial-value');
-                const descInput = row.querySelector('.system-description');
+            // .system-row 대신 .system-item을 찾고, #create-world-systems-container .systems-flex-wrapper 내부에서 찾아야 합니다.
+            const systemItems = document.querySelectorAll('#create-world-systems-container .systems-flex-wrapper .system-item');
+            systemItems.forEach(item => {
+                const nameInput = item.querySelector('.system-name');
+                const valueInput = item.querySelector('.system-initial-value');
+                const descInput = item.querySelector('.system-description');
                 
                 if (nameInput && valueInput && nameInput.value.trim()) {
                     const systemName = nameInput.value.trim();
@@ -230,11 +234,12 @@ function setupCreateWorldPage() {
 // 세계관 수정 페이지 설정
 function setupEditWorldPage() {
     const editWorldForm = document.getElementById('edit-world-form');
-    const editWorldSystemsContainer = document.getElementById('edit-world-systems-container');
-    const editAddWorldSystemBtn = document.getElementById('edit-add-world-system-btn');
+    // const editWorldSystemsContainer = document.getElementById('edit-world-systems-container');
+    // const editAddWorldSystemBtn = document.getElementById('edit-add-world-system-btn');
     const worldDataScriptElement = document.getElementById('world-data-script');
 
-    if (editWorldForm && editWorldSystemsContainer && editAddWorldSystemBtn && worldDataScriptElement && window.worldManager) {
+    // editWorldForm이 있어야 이후 로직이 의미가 있습니다.
+    if (editWorldForm && worldDataScriptElement && window.worldManager) {
         let worldDataFromTemplate = null;
         
         if (worldDataScriptElement.textContent) {
@@ -251,39 +256,73 @@ function setupEditWorldPage() {
 
         if (worldDataFromTemplate) {
             window.worldManager.editingWorldId = worldDataFromTemplate.id;
+            // setupSystemInputInterface는 'edit-world-systems-container' ID를 가진 요소와 
+            // 'edit-add-world-system-btn' ID를 가진 버튼을 사용합니다.
             window.worldManager.setupSystemInputInterface('edit-world-systems-container', 'edit-add-world-system-btn', true);
             
-            const initialMsg = editWorldSystemsContainer.querySelector('p.text-gray-500');
-            
-            if (worldDataFromTemplate.systems && worldDataFromTemplate.system_configs && Array.isArray(worldDataFromTemplate.systems) && worldDataFromTemplate.systems.length > 0) {
-                editWorldSystemsContainer.innerHTML = '';
-                if (initialMsg) editWorldSystemsContainer.appendChild(initialMsg);
-                
-                worldDataFromTemplate.systems.forEach(systemName => {
-                    const config = worldDataFromTemplate.system_configs[systemName];
-                    if (config) {
-                        const systemRow = window.worldManager.createSystemInputRow(
-                            systemName, 
-                            config.initial !== undefined ? String(config.initial) : '0', 
-                            config.description || '', 
-                            true
-                        );
-                        editWorldSystemsContainer.appendChild(systemRow);
-                    }
-                });
-                
-                if (initialMsg && editWorldSystemsContainer.querySelectorAll('.system-row').length > 0) {
-                    initialMsg.classList.add('hidden');
-                } else if (initialMsg) {
-                    initialMsg.classList.remove('hidden');
+            // 시스템 아이템들을 동적으로 생성하고 채우는 로직
+            const systemsFlexWrapper = document.querySelector('#edit-world-systems-container .systems-flex-wrapper');
+            const noSystemsMessage = document.getElementById('edit-no-systems-message');
+
+            if (systemsFlexWrapper && noSystemsMessage) {
+                systemsFlexWrapper.innerHTML = ''; // 기존 아이템 초기화
+
+                if (worldDataFromTemplate.systems && worldDataFromTemplate.system_configs && Array.isArray(worldDataFromTemplate.systems) && worldDataFromTemplate.systems.length > 0) {
+                    worldDataFromTemplate.systems.forEach(systemName => {
+                        const config = worldDataFromTemplate.system_configs[systemName];
+                        if (config) {
+                            const systemItem = window.worldManager.createSystemInputRow(
+                                systemName, 
+                                config.initial !== undefined ? String(config.initial) : '0', 
+                                config.description || '', 
+                                true
+                            );
+                            systemsFlexWrapper.appendChild(systemItem);
+                        }
+                    });
+                    noSystemsMessage.classList.add('hidden');
+                } else {
+                    noSystemsMessage.classList.remove('hidden');
                 }
-            } else {
-                if (initialMsg) initialMsg.classList.remove('hidden');
             }
 
             editWorldForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
-                await window.worldManager.handleUpdateWorld(event, worldDataFromTemplate.id);
+                // handleUpdateWorld 내부에서도 system-item 기준으로 데이터를 수집해야 합니다.
+                // 해당 함수는 world_management.js에 있으며, 이미 FormData를 사용하므로, 
+                // FormData 생성 시 system-item에서 값을 읽어오도록 수정이 필요합니다.
+                // (이 부분은 world_management.js의 handleUpdateWorld에서 수정되어야 합니다.)
+
+                const finalFormData = new FormData(editWorldForm); // 기본 폼 데이터
+                const systemsArray = [];
+                const systemConfigsObject = {};
+                const systemItems = document.querySelectorAll('#edit-world-systems-container .systems-flex-wrapper .system-item');
+                
+                systemItems.forEach(item => {
+                    const nameInput = item.querySelector('.system-name');
+                    const valueInput = item.querySelector('.system-initial-value');
+                    const descInput = item.querySelector('.system-description');
+                    
+                    if (nameInput && valueInput && nameInput.value.trim()) {
+                        const systemName = nameInput.value.trim();
+                        systemsArray.push(systemName);
+                        systemConfigsObject[systemName] = {
+                            initial: parseFloat(valueInput.value) || 0,
+                            description: descInput ? descInput.value.trim() : ''
+                        };
+                    }
+                });
+    
+                finalFormData.append('systems', JSON.stringify(systemsArray));
+                finalFormData.append('system_configs', JSON.stringify(systemConfigsObject));
+                
+                // is_public은 FormData가 알아서 처리하지만, 명시적으로 확인하는 것도 좋습니다.
+                if (!finalFormData.has('is_public')) {
+                    finalFormData.append('is_public', 'off'); 
+                }
+
+                await window.worldManager.handleUpdateWorld(event, worldDataFromTemplate.id, finalFormData); 
+                // handleUpdateWorld에 finalFormData를 전달하도록 수정
             });
         }
     }
