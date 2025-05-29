@@ -133,14 +133,14 @@ export class AdventureManager {
             const adventuresToDisplay = adventures.slice(0, 5);
 
             if (adventuresToDisplay.length > 0) {
-                this.noOngoingAdventuresMsg.classList.add('hidden');
+            this.noOngoingAdventuresMsg.classList.add('hidden');
                 console.log(`[DEBUG displayOngoingAdventuresModal] Found ${adventuresToDisplay.length} adventures to display. Populating modal.`);
-                
+            
                 adventuresToDisplay.forEach(adv => {
-                    const adventureCard = this.createAdventureCard(adv);
-                    this.ongoingAdventuresListContainer.appendChild(adventureCard);
-                });
-            } else {
+                const adventureCard = this.createAdventureCard(adv);
+                this.ongoingAdventuresListContainer.appendChild(adventureCard);
+            });
+        } else {
                 this.noOngoingAdventuresMsg.classList.remove('hidden');
                 console.log("[DEBUG displayOngoingAdventuresModal] No adventures to display after slicing (or original was empty).");
             }
@@ -335,7 +335,7 @@ window.adventureManager = null;
 
 export function initAdventureManager() {
     if (!window.adventureManager) {
-        window.adventureManager = new AdventureManager();
+    window.adventureManager = new AdventureManager();
         if(window.currentUser) {
             window.adventureManager.updateSidebarAdventures();
         } else {

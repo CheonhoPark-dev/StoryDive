@@ -7,7 +7,7 @@
 {% block content %}
 <style>
 /* 게임 시스템 설정 전체 박스 스타일 */
-.systems-section-container {
+.systems-section-container, .endings-section-container {
     /* 이 컨테이너의 너비가 고정되거나, 부모에 의해 제한되어야 합니다. */
     /* 예를 들어, 폼 전체 너비에 맞춰지도록 합니다. */
     /* 이 클래스를 <div class="mb-6 p-4 border border-gray-700 rounded-lg">에 추가하거나, */
@@ -15,14 +15,15 @@
     overflow: hidden; /* 내부 wrapper가 넘칠 때 이 컨테이너는 늘어나지 않도록 */
 }
 
-#create-world-systems-container, #edit-world-systems-container {
+#create-world-systems-container, #edit-world-systems-container,
+#create-world-endings-container, #edit-world-endings-container {
     /* 이 요소 자체가 아니라, 이 안의 wrapper가 스크롤을 담당 */
     /* 너비가 내부 아이템에 따라 늘어나지 않도록 설정 */
     /* padding-right을 주어 스크롤바가 내용물을 가리지 않도록 할 수 있으나, */
     /* wrapper에서 padding-bottom으로 처리했으므로 여기선 불필요할 수 있음 */
 }
 
-.systems-flex-wrapper {
+.systems-flex-wrapper, .endings-flex-wrapper {
     display: flex;
     overflow-x: auto; /* 가로 스크롤 활성화 */
     overflow-y: hidden; /* 세로 스크롤은 필요 없음 */
@@ -33,7 +34,7 @@
     /* width: 100%; /* 부모 컨테이너에 꽉 차도록. 부모가 너비 제한을 가져야 함 */
 }
 
-.system-item {
+.system-item, .ending-item {
     flex: 0 0 280px; /* 각 시스템 아이템의 너비 고정, flex-basis를 사용 */
     /* width는 flex-basis로 대체했으므로 제거 가능 */
     padding: 1rem;
@@ -45,7 +46,12 @@
     gap: 0.5rem;
 }
 
-.system-item label {
+.ending-item {
+    border-color: #7C3AED; /* purple-600 for endings */
+    background-color: #2D1B69; /* darker purple */
+}
+
+.system-item label, .ending-item label {
     display: block;
     margin-bottom: 0.25rem; /* mb-1 */
     font-size: 0.875rem; /* text-sm */
@@ -53,9 +59,15 @@
     font-weight: 500; /* font-medium */
 }
 
+.ending-item label {
+    color: #C4B5FD; /* purple-300 */
+}
+
 .system-item input[type="text"],
 .system-item input[type="number"],
-.system-item textarea {
+.system-item textarea,
+.ending-item input[type="text"],
+.ending-item textarea {
     width: 100%;
     padding: 0.75rem; /* p-3 */
     font-size: 0.875rem; /* text-sm */
@@ -66,6 +78,12 @@
     box-sizing: border-box; /* 패딩과 테두리가 너비에 포함되도록 */
 }
 
+.ending-item input[type="text"],
+.ending-item textarea {
+    background-color: #1E1B3C; /* darker purple */
+    border-color: #6B46C1; /* purple-600 */
+}
+
 .system-item input[type="text"]:focus,
 .system-item input[type="number"]:focus,
 .system-item textarea:focus {
@@ -74,33 +92,115 @@
     /* box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5); /* 선택적 focus ring */
 }
 
-.system-item textarea {
+.ending-item input[type="text"]:focus,
+.ending-item textarea:focus {
+    outline: none;
+    border-color: #8B5CF6; /* purple-500 */
+}
+
+.system-item textarea, .ending-item textarea {
     min-height: 70px; /* 설명 필드 최소 높이 조정 */
 }
 
-.system-item .btn-danger { /* 삭제 버튼 스타일 일관성 */
+.ending-item .ending-content-textarea {
+    min-height: 100px; /* 엔딩 내용은 더 긴 텍스트 필요 */
+}
+
+.system-item .btn-danger, .ending-item .btn-danger { /* 삭제 버튼 스타일 일관성 */
     padding: 0.375rem 0.75rem;
     font-size: 0.75rem; /* text-xs */
     margin-top: auto; /* 버튼을 아이템 하단에 위치 */
 }
 
 /* 스크롤바 스타일 (선택 사항) */
-.systems-flex-wrapper::-webkit-scrollbar {
+.systems-flex-wrapper::-webkit-scrollbar,
+.endings-flex-wrapper::-webkit-scrollbar {
     height: 8px;
 }
 
-.systems-flex-wrapper::-webkit-scrollbar-track {
+.systems-flex-wrapper::-webkit-scrollbar-track,
+.endings-flex-wrapper::-webkit-scrollbar-track {
     background: #1A202C; /* gray-900 */
     border-radius: 4px;
 }
 
-.systems-flex-wrapper::-webkit-scrollbar-thumb {
+.systems-flex-wrapper::-webkit-scrollbar-thumb,
+.endings-flex-wrapper::-webkit-scrollbar-thumb {
     background: #4A5568; /* gray-600 */
     border-radius: 4px;
 }
 
-.systems-flex-wrapper::-webkit-scrollbar-thumb:hover {
+.endings-flex-wrapper::-webkit-scrollbar-thumb {
+    background: #7C3AED; /* purple-600 */
+}
+
+.systems-flex-wrapper::-webkit-scrollbar-thumb:hover,
+.endings-flex-wrapper::-webkit-scrollbar-thumb:hover {
     background: #718096; /* gray-500 */
+}
+
+.endings-flex-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #8B5CF6; /* purple-500 */
+}
+
+/* 시스템 카드 스타일 - 다크 모드 */
+.system-card-dark {
+    background: rgba(55, 65, 81, 0.8);
+    border-color: #4b5563;
+}
+.system-card-dark:hover {
+    border-color: #6b7280;
+}
+
+/* 시스템 설정 UI 추가 스타일 */
+.system-item .max-value-container {
+    margin-top: 0.5rem;
+}
+
+.system-item .system-use-progress-bar {
+    accent-color: #6366f1;
+}
+
+.system-item label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.875rem;
+    color: #9CA3AF;
+    font-weight: 500;
+}
+
+.system-item input[type="checkbox"] + label {
+    display: inline;
+    margin-left: 0.5rem;
+    cursor: pointer;
+}
+
+body.light-mode .system-item label {
+    color: #374151;
+}
+
+body.light-mode .system-item .system-use-progress-bar {
+    background-color: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+/* 라이트 모드에서 시스템 카드 스타일 */
+body.light-mode .system-card-dark {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: #d1d5db;
+    backdrop-filter: blur(10px);
+}
+body.light-mode .system-card-dark:hover {
+    border-color: #9ca3af;
+}
+body.light-mode .system-card-dark .text-gray-200 {
+    color: #374151 !important;
+}
+body.light-mode .system-card-dark .text-gray-400 {
+    color: #6b7280 !important;
+}
+body.light-mode .system-card-dark .bg-gray-800 {
+    background-color: #e5e7eb !important;
 }
 </style>
 <div id="create-world-form-container" class="content-card p-8 rounded-xl shadow-lg mb-8 md:col-span-2 lg:col-span-3 card-hover">
@@ -125,6 +225,21 @@
             <button type="button" id="create-add-world-system-btn"
                     class="mt-4 btn-secondary text-white px-4 py-2 rounded-md text-sm font-medium transition hover:bg-teal-600 btn-glow">
                 <i class="fas fa-plus mr-1"></i> 시스템 추가
+            </button>
+        </div>
+
+        <!-- 엔딩 설정 섹션 -->
+        <div class="mb-6 p-4 border border-purple-700 rounded-lg endings-section-container">
+            <h4 class="text-lg font-medium text-purple-300 mb-3">엔딩 설정 (선택 사항)</h4>
+            <div id="create-world-endings-container">
+                <div class="endings-flex-wrapper">
+                    <!-- 엔딩 아이템들이 여기에 동적으로 추가됩니다 (JavaScript에 의해) -->
+                </div>
+                <p id="no-endings-message" class="text-sm text-purple-400 mt-2">아직 추가된 엔딩이 없습니다. "엔딩 추가" 버튼을 눌러 다양한 스토리 결말을 설정하세요.</p>
+            </div>
+            <button type="button" id="create-add-world-ending-btn"
+                    class="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium transition btn-glow">
+                <i class="fas fa-flag-checkered mr-1"></i> 엔딩 추가
             </button>
         </div>
 
@@ -208,6 +323,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 기존 create_world.js 로직이 있다면 여기에 통합하거나 별도 파일로 관리합니다.
     // 예시: 폼 제출 핸들러 등
+    // 주석: WorldManager에서 이미 폼 제출을 처리하므로 여기서는 제거
+    /*
     const createWorldForm = document.getElementById('create-world-form');
     if (createWorldForm) {
         createWorldForm.addEventListener('submit', async function(event) {
@@ -217,6 +334,15 @@ document.addEventListener('DOMContentLoaded', function() {
             feedbackDiv.className = 'mt-4 text-sm text-blue-500';
 
             const formData = new FormData(this);
+            
+            // 엔딩 데이터 수집 (WorldManager의 getEndingsData 사용)
+            if (window.worldManager && typeof window.worldManager.getEndingsData === 'function') {
+                const endings = window.worldManager.getEndingsData();
+                if (endings.length > 0) {
+                    formData.append('endings', JSON.stringify(endings));
+                }
+            }
+            
             // 개발자 노트: 백엔드 API 엔드포인트 확인 필요
             // const worldTitle = formData.get('title');
             // formData.append('slug', generateSlug(worldTitle)); 
@@ -237,6 +363,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     // window.location.href = `/world/${result.slug}`; // 예시
                     createWorldForm.reset();
                     coverImagePreview.classList.add('hidden');
+                    
+                    // 엔딩 아이템들 초기화 (WorldManager 사용)
+                    if (window.worldManager && typeof window.worldManager.setupEndingInputInterface === 'function') {
+                        window.worldManager.setupEndingInputInterface([]);
+                    }
                 } else {
                     const errorData = await response.json();
                     feedbackDiv.textContent = '오류: ' + (errorData.message || response.statusText);
@@ -249,14 +380,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
-    // slug 생성 함수 (필요시 사용)
-    // function generateSlug(title) {
-    //     return title.toLowerCase().trim()
-    //         .replace(/\s+/g, '-')           // 공백을 하이픈으로
-    //         .replace(/[^\w-]+/g, '')       // 특수문자 제거 (하이픈 제외)
-    //         .replace(/--+/g, '-');          // 중복 하이픈 제거
-    // }
+    */
 
     const cancelBtn = document.getElementById('cancel-create-world-btn');
     if (cancelBtn) {

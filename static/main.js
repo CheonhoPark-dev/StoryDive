@@ -1,11 +1,12 @@
 import * as api from './api.js';
-import { initSidebar, toggleSidebar, adjustModalPosition } from './sidebar.js';
+import { initSidebar } from './sidebar.js';
 import { initTheme, toggleTheme } from './theme.js';
 import { initModalDOMElements } from './world_ui.js';
 import { initStoryGame } from './story_game.js';
 import { initWorldManager } from './world_management.js';
 import { initAdventureManager } from './adventure_manager.js';
 import { initAuthManager } from './auth_manager.js';
+import { initEndingManager } from './ending_manager.js';
 
 // Modal 열기/닫기 함수 - 모듈 최상위 레벨 정의 및 export
 export function openModal(modalElement) {
@@ -71,21 +72,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function initializeApplication() {
         console.log("앱 초기화 시작...");
         
-        // Supabase 초기화
+        // 인증 관리자 초기화 (가장 먼저)
         await authManager.initializeSupabase();
+        
+        // EndingManager 초기화
+        initEndingManager();
+        
+        // 어드벤처 관리자 초기화
+        const adventureManager = initAdventureManager();
+        
+        // 사이드바 초기화
+        const { toggleSidebar } = await import('./sidebar.js');
+        initSidebar(sidebar, mainContentArea, mobileHeaderSidebarToggleBtn, desktopSidebarToggleBtn);
+        if (mobileHeaderSidebarToggleBtn) mobileHeaderSidebarToggleBtn.addEventListener('click', toggleSidebar);
+        if (desktopSidebarToggleBtn) desktopSidebarToggleBtn.addEventListener('click', toggleSidebar);
 
-        // 테마 초기화
+        // 테마 토글 초기화
         if (themeToggleBtn && themeToggleIcon && themeToggleText) {
             initTheme(themeToggleIcon, themeToggleText);
             themeToggleBtn.addEventListener('click', toggleTheme);
         }
-
-        // 사이드바 초기화
-        if (sidebar && mainContentArea && mobileHeaderSidebarToggleBtn && desktopSidebarToggleBtn) {
-            initSidebar(sidebar, mainContentArea, mobileHeaderSidebarToggleBtn, desktopSidebarToggleBtn);
-        }
-        if (mobileHeaderSidebarToggleBtn) mobileHeaderSidebarToggleBtn.addEventListener('click', toggleSidebar);
-        if (desktopSidebarToggleBtn) desktopSidebarToggleBtn.addEventListener('click', toggleSidebar);
 
         // 모달 초기화
         initModalDOMElements();
@@ -132,200 +138,250 @@ document.addEventListener('DOMContentLoaded', async () => {
             // 즉시 시도
             setTimeout(initMyWorlds, 100);
         } else if (currentPath === '/create-world') {
-            setupCreateWorldPage();
+            setupCreateWorldPage(worldManager);
         } else if (currentPath.startsWith('/edit-world/')) {
-            setupEditWorldPage();
+            setupEditWorldPage(worldManager, currentPath.split('/').pop());
         }
     }
 
     // 3. 공통 이벤트 리스너 등록
     setupCommonEventListeners();
 
+    // 개발 테스트 버튼들
+    const testEndingBtn = document.getElementById('test-ending-btn');
+    const testEndingModalBtn = document.getElementById('test-ending-modal-btn');
+    const triggerTestEndingBtn = document.getElementById('trigger-test-ending-btn');
+
+    if (testEndingBtn) {
+        testEndingBtn.addEventListener('click', () => {
+            console.log("[DEBUG] Test ending button clicked");
+            if (window.endingManager) {
+                window.endingManager.showTestEnding();
+            } else {
+                console.error("EndingManager not found on window object");
+            }
+        });
+    }
+
+    if (testEndingModalBtn) {
+        testEndingModalBtn.addEventListener('click', () => {
+            console.log("[DEBUG] Test ending modal button clicked");
+            if (window.endingManager) {
+                // 다른 엔딩 예시
+                const alternateEndingData = {
+                    name: "어둠의 왕",
+                    condition: "모든 적을 쓰러뜨리고 힘을 추구해야 합니다.",
+                    content: "당신은 절대적인 힘을 손에 넣었습니다. 세상은 당신 앞에 무릎을 꿇고, 당신의 이름을 두려워합니다. 하지만 최고의 자리는 외롭기만 합니다..."
+                };
+
+                const alternateGameStats = {
+                    totalTurns: 65,
+                    playTimeMinutes: 120,
+                    choicesMade: 40
+                };
+
+                window.endingManager.showEndingAchievement(alternateEndingData, alternateGameStats);
+            } else {
+                console.error("EndingManager not found on window object");
+            }
+        });
+    }
+
+    if (triggerTestEndingBtn) {
+        triggerTestEndingBtn.addEventListener('click', () => {
+            console.log("[DEBUG] Force trigger test ending clicked");
+            if (window.storyGameManager) {
+                // 테스트용 가짜 엔딩 데이터
+                const testEnding = {
+                    name: "강제 테스트 엔딩",
+                    condition: "테스트 조건",
+                    content: "이것은 강제로 트리거된 테스트 엔딩입니다. 실제 게임에서 엔딩 시스템이 올바르게 작동하는지 확인하기 위한 테스트입니다."
+                };
+                
+                console.log("[DEBUG] Forcing ending trigger with test data:", testEnding);
+                window.storyGameManager.triggerEnding(testEnding);
+            } else {
+                console.error("StoryGameManager not found on window object");
+            }
+        });
+    }
+
     console.log("[DEBUG] DOMContentLoaded - 모든 초기화 완료.");
 });
 
 // 세계관 생성 페이지 설정
-function setupCreateWorldPage() {
-    const createWorldForm = document.getElementById('create-world-form');
-    const cancelCreateWorldBtn = document.getElementById('cancel-create-world-btn');
-    // createWorldSystemsContainer는 전체 시스템 UI 섹션을 감싸는 div의 ID여야 합니다.
-    // const createWorldSystemsContainer = document.getElementById('create-world-systems-container');
-    // const createAddWorldSystemBtn = document.getElementById('create-add-world-system-btn');
+export function setupCreateWorldPage(worldManager) {
+    console.log("[DEBUG setupCreateWorldPage] Setting up create world page...");
+    worldManager.setupSystemInputInterface('create-world-systems-container', 'create-add-world-system-btn', false); // 시스템 UI 초기화
+    worldManager.setupEndingInputInterface([]); // 엔딩 UI 초기화
 
-    if (window.worldManager) {
-        // setupSystemInputInterface 호출은 worldManager 내부에서 DOM 요소를 찾도록 수정되었거나,
-        // 올바른 ID를 전달해야 합니다. create-world-systems-container는 시스템 아이템들이 들어갈 flex wrapper의 부모입니다.
-        window.worldManager.setupSystemInputInterface('create-world-systems-container', 'create-add-world-system-btn', false);
-    }
-
-    if (createWorldForm) {
-        createWorldForm.addEventListener('submit', async function(event) {
+    const form = document.getElementById('create-world-form');
+    if (form) {
+        form.addEventListener('submit', async (event) => {
             event.preventDefault();
-            if (!window.currentUser) {
-                document.getElementById('create-world-feedback').textContent = '로그인이 필요합니다.';
-                return;
-            }
-
-            const finalFormData = new FormData(createWorldForm);
-            const systemsArray = [];
-            const systemConfigsObject = {};
-            
-            // .system-row 대신 .system-item을 찾고, #create-world-systems-container .systems-flex-wrapper 내부에서 찾아야 합니다.
-            const systemItems = document.querySelectorAll('#create-world-systems-container .systems-flex-wrapper .system-item');
-            systemItems.forEach(item => {
-                const nameInput = item.querySelector('.system-name');
-                const valueInput = item.querySelector('.system-initial-value');
-                const descInput = item.querySelector('.system-description');
-                
-                if (nameInput && valueInput && nameInput.value.trim()) {
-                    const systemName = nameInput.value.trim();
-                    systemsArray.push(systemName);
-                    systemConfigsObject[systemName] = {
-                        initial: parseFloat(valueInput.value) || 0,
-                        description: descInput ? descInput.value.trim() : ''
-                    };
-                }
-            });
-            
-            finalFormData.append('systems', JSON.stringify(systemsArray));
-            finalFormData.append('system_configs', JSON.stringify(systemConfigsObject));
-
-            const feedbackDiv = document.getElementById('create-world-feedback');
-            showLoadingSpinner(true, 'create-world-feedback', '세계관 생성 중...');
-
+            console.log("[DEBUG setupCreateWorldPage] Create form submitted.");
+            // WorldManager의 handleCreateWorld 내부에서 FormData를 생성하고 필요한 모든 데이터를 수집.
+            // 여기서는 WorldManager의 메서드만 호출.
             try {
-                const response = await fetch('/api/worlds', {
-                    method: 'POST',
-                    body: finalFormData,
-                    headers: {
-                        ...(window.currentSession && window.currentSession.access_token ? { 'Authorization': `Bearer ${window.currentSession.access_token}` } : {})
-                    }
-                });
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    feedbackDiv.textContent = '세계관이 성공적으로 저장되었습니다! ID: ' + (result.id || result.world_id);
-                    feedbackDiv.className = 'mt-4 text-sm text-green-500';
-                    setTimeout(() => { window.location.href = '/my-worlds'; }, 1000);
-                } else {
-                    const errorData = await response.json();
-                    feedbackDiv.textContent = `오류: ${errorData.error || errorData.message || '알 수 없는 오류'}`;
-                    feedbackDiv.className = 'mt-4 text-sm text-red-500';
-                }
+                await worldManager.handleCreateWorld(event); 
+                // 성공 시 페이지 이동 등은 handleCreateWorld 내부 또는 해당 메서드가 반환하는 Promise 결과에 따라 처리
             } catch (error) {
-                console.error('Error submitting create world form:', error);
-                feedbackDiv.textContent = `오류: ${error.message}`;
-                feedbackDiv.className = 'mt-4 text-sm text-red-500';
-            } finally {
-                showLoadingSpinner(false, 'create-world-feedback');
+                console.error("[DEBUG setupCreateWorldPage] Error during world creation:", error);
+                // 오류 처리는 worldManager.handleCreateWorld 내부 또는 여기서 추가적으로 수행
             }
         });
-    }
-
-    if (cancelCreateWorldBtn) {
-        cancelCreateWorldBtn.addEventListener('click', () => {
-            if (confirm('세계관 생성을 취소하시겠습니까? 변경사항이 저장되지 않습니다.')) {
-                window.location.href = '/';
-            }
-        });
+    } else {
+        console.error("[DEBUG setupCreateWorldPage] create-world-form not found.");
     }
 }
 
 // 세계관 수정 페이지 설정
-function setupEditWorldPage() {
-    const editWorldForm = document.getElementById('edit-world-form');
-    // const editWorldSystemsContainer = document.getElementById('edit-world-systems-container');
-    // const editAddWorldSystemBtn = document.getElementById('edit-add-world-system-btn');
-    const worldDataScriptElement = document.getElementById('world-data-script');
-
-    // editWorldForm이 있어야 이후 로직이 의미가 있습니다.
-    if (editWorldForm && worldDataScriptElement && window.worldManager) {
-        let worldDataFromTemplate = null;
-        
-        if (worldDataScriptElement.textContent) {
-            try {
-                worldDataFromTemplate = JSON.parse(worldDataScriptElement.textContent);
-                console.log("[DEBUG] Parsed worldDataFromTemplate:", worldDataFromTemplate);
-            } catch (e) {
-                console.error("Error parsing worldDataFromTemplate:", e);
-                const feedbackEl = document.getElementById('edit-world-feedback');
-                if (feedbackEl) feedbackEl.textContent = '세계관 데이터 파싱 중 오류가 발생했습니다.';
-                return;
-            }
-        }
-
-        if (worldDataFromTemplate) {
-            window.worldManager.editingWorldId = worldDataFromTemplate.id;
-            // setupSystemInputInterface는 'edit-world-systems-container' ID를 가진 요소와 
-            // 'edit-add-world-system-btn' ID를 가진 버튼을 사용합니다.
-            window.worldManager.setupSystemInputInterface('edit-world-systems-container', 'edit-add-world-system-btn', true);
-            
-            // 시스템 아이템들을 동적으로 생성하고 채우는 로직
-            const systemsFlexWrapper = document.querySelector('#edit-world-systems-container .systems-flex-wrapper');
-            const noSystemsMessage = document.getElementById('edit-no-systems-message');
-
-            if (systemsFlexWrapper && noSystemsMessage) {
-                systemsFlexWrapper.innerHTML = ''; // 기존 아이템 초기화
-
-                if (worldDataFromTemplate.systems && worldDataFromTemplate.system_configs && Array.isArray(worldDataFromTemplate.systems) && worldDataFromTemplate.systems.length > 0) {
-                    worldDataFromTemplate.systems.forEach(systemName => {
-                        const config = worldDataFromTemplate.system_configs[systemName];
-                        if (config) {
-                            const systemItem = window.worldManager.createSystemInputRow(
-                                systemName, 
-                                config.initial !== undefined ? String(config.initial) : '0', 
-                                config.description || '', 
-                                true
-                            );
-                            systemsFlexWrapper.appendChild(systemItem);
-                        }
-                    });
-                    noSystemsMessage.classList.add('hidden');
-                } else {
-                    noSystemsMessage.classList.remove('hidden');
-                }
-            }
-
-            editWorldForm.addEventListener('submit', async (event) => {
-                event.preventDefault();
-                // handleUpdateWorld 내부에서도 system-item 기준으로 데이터를 수집해야 합니다.
-                // 해당 함수는 world_management.js에 있으며, 이미 FormData를 사용하므로, 
-                // FormData 생성 시 system-item에서 값을 읽어오도록 수정이 필요합니다.
-                // (이 부분은 world_management.js의 handleUpdateWorld에서 수정되어야 합니다.)
-
-                const finalFormData = new FormData(editWorldForm); // 기본 폼 데이터
-                const systemsArray = [];
-                const systemConfigsObject = {};
-                const systemItems = document.querySelectorAll('#edit-world-systems-container .systems-flex-wrapper .system-item');
-                
-                systemItems.forEach(item => {
-                    const nameInput = item.querySelector('.system-name');
-                    const valueInput = item.querySelector('.system-initial-value');
-                    const descInput = item.querySelector('.system-description');
-                    
-                    if (nameInput && valueInput && nameInput.value.trim()) {
-                        const systemName = nameInput.value.trim();
-                        systemsArray.push(systemName);
-                        systemConfigsObject[systemName] = {
-                            initial: parseFloat(valueInput.value) || 0,
-                            description: descInput ? descInput.value.trim() : ''
-                        };
-                    }
-                });
+export async function setupEditWorldPage(worldManager, worldId) {
+    console.log(`[DEBUG setupEditWorldPage] Setting up edit world page for world ID: ${worldId}`);
     
-                finalFormData.append('systems', JSON.stringify(systemsArray));
-                finalFormData.append('system_configs', JSON.stringify(systemConfigsObject));
-                
-                // is_public은 FormData가 알아서 처리하지만, 명시적으로 확인하는 것도 좋습니다.
-                if (!finalFormData.has('is_public')) {
-                    finalFormData.append('is_public', 'off'); 
-                }
-
-                await window.worldManager.handleUpdateWorld(event, worldDataFromTemplate.id, finalFormData); 
-                // handleUpdateWorld에 finalFormData를 전달하도록 수정
-            });
-        }
+    // 세계관 데이터 로드 - script 태그에서 JSON 데이터 가져오기
+    const worldDataScript = document.getElementById('world-data-script');
+    if (!worldDataScript) {
+        console.error("[DEBUG setupEditWorldPage] world-data-script not found.");
+        alert("세계관 데이터를 불러올 수 없습니다.");
+        return;
     }
+
+    let worldData;
+    try {
+        worldData = JSON.parse(worldDataScript.textContent);
+        console.log("[DEBUG setupEditWorldPage] World data from script:", worldData);
+    } catch (e) {
+        console.error("[DEBUG setupEditWorldPage] Error parsing world data:", e);
+        alert("세계관 데이터 파싱에 실패했습니다.");
+        return;
+    }
+
+    if (!worldData) {
+        console.error("[DEBUG setupEditWorldPage] No world data available");
+        alert("세계관 데이터를 찾을 수 없습니다.");
+        return;
+    }
+
+    // WorldManager의 DOM 요소들을 edit-world 페이지에 맞게 재초기화
+    worldManager.worldForm = document.getElementById('edit-world-form');
+    worldManager.worldTitleInput = document.getElementById('edit-world-title');
+    worldManager.detailSettingsTextarea = document.getElementById('edit-world-setting');
+    worldManager.startPointTextarea = document.getElementById('edit-world-starting-point');
+    worldManager.genreInput = document.getElementById('edit-world-genre');
+    worldManager.tagsInput = document.getElementById('edit-world-tags');
+    worldManager.isPublicCheckbox = document.getElementById('edit-world-is-public');
+    worldManager.coverImageInput = document.getElementById('edit-cover-image-input');
+    worldManager.coverPreview = document.getElementById('edit-cover-image-preview');
+
+    const form = worldManager.worldForm;
+    if (!form) {
+        console.error("[DEBUG setupEditWorldPage] edit-world-form not found.");
+        return;
+    }
+
+    // 폼 필드 채우기
+    if (worldManager.worldTitleInput) worldManager.worldTitleInput.value = worldData.title || '';
+    if (worldManager.detailSettingsTextarea) worldManager.detailSettingsTextarea.value = worldData.setting || '';
+    if (worldManager.startPointTextarea) worldManager.startPointTextarea.value = worldData.starting_point || '';
+    if (worldManager.genreInput) worldManager.genreInput.value = worldData.genre || '';
+    if (worldManager.tagsInput) {
+        const tagsValue = worldData.tags ? (Array.isArray(worldData.tags) ? worldData.tags.join(', ') : worldData.tags) : '';
+        worldManager.tagsInput.value = tagsValue;
+    }
+    if (worldManager.isPublicCheckbox) worldManager.isPublicCheckbox.checked = worldData.is_public || false;
+    
+    if (worldManager.coverPreview && worldData.cover_image_url) {
+        worldManager.coverPreview.src = worldData.cover_image_url;
+    }
+    
+    // 게임 시스템 UI 초기화 및 데이터 로드
+    let systemsArray = [];
+    if (typeof worldData.systems === 'string') {
+        try {
+            systemsArray = JSON.parse(worldData.systems);
+        } catch (e) {
+            console.error("[DEBUG setupEditWorldPage] Error parsing systems JSON string:", e);
+            systemsArray = [];
+        }
+    } else if (Array.isArray(worldData.systems)) {
+        systemsArray = worldData.systems;
+    }
+    worldManager.setupSystemInputInterface('edit-world-systems-container', 'edit-add-world-system-btn', true);
+
+    // 시스템 설정 데이터 처리
+    let systemConfigs = {};
+    if (typeof worldData.system_configs === 'string') {
+        try {
+            systemConfigs = JSON.parse(worldData.system_configs);
+        } catch (e) {
+            console.error("[DEBUG setupEditWorldPage] Error parsing system_configs JSON string:", e);
+            systemConfigs = {};
+        }
+    } else if (typeof worldData.system_configs === 'object') {
+        systemConfigs = worldData.system_configs || {};
+    }
+
+    // 시스템 아이템 생성
+    const systemsWrapper = document.querySelector('#edit-world-systems-container .systems-flex-wrapper');
+    if (systemsWrapper && systemsArray.length > 0) {
+        systemsArray.forEach(systemName => {
+            const config = systemConfigs[systemName] || { initial_value: 0, description: '' };
+            const systemItem = worldManager.createSystemInputRow(
+                systemName, 
+                config.initial_value || 0, 
+                config.description || '', 
+                true
+            );
+            systemsWrapper.appendChild(systemItem);
+        });
+        const noSystemsMessage = document.getElementById('edit-no-systems-message');
+        if (noSystemsMessage) noSystemsMessage.classList.add('hidden');
+    }
+
+    // 엔딩 UI 초기화 및 데이터 로드
+    let endingsArray = [];
+    if (typeof worldData.endings === 'string') {
+        try {
+            endingsArray = JSON.parse(worldData.endings);
+        } catch (e) {
+            console.error("[DEBUG setupEditWorldPage] Error parsing endings JSON string:", e);
+            endingsArray = [];
+        }
+    } else if (Array.isArray(worldData.endings)) {
+        endingsArray = worldData.endings;
+    }
+    worldManager.setupEndingInputInterface(endingsArray);
+
+    // 폼 제출 이벤트 리스너
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        console.log("[DEBUG setupEditWorldPage] Edit form submitted.");
+        
+        const formData = new FormData(form);
+        
+        // 시스템 및 엔딩 데이터 추가
+        const systems = worldManager.getSystemsData();
+        formData.set('systems', JSON.stringify(systems));
+
+        const systemConfigs = worldManager.getSystemConfigsData();
+        formData.set('system_configs', JSON.stringify(systemConfigs));
+
+        const endings = worldManager.getEndingsData();
+        formData.set('endings', JSON.stringify(endings));
+
+        if (worldManager.isPublicCheckbox) {
+            formData.set('is_public', worldManager.isPublicCheckbox.checked.toString());
+        }
+
+        console.log("[DEBUG setupEditWorldPage] FormData prepared for update:", Object.fromEntries(formData.entries()));
+
+        try {
+            await worldManager.handleUpdateWorld(event, worldId, formData);
+        } catch (error) {
+            console.error("[DEBUG setupEditWorldPage] Error during world update:", error);
+        }
+    });
 }
 
 // 공통 이벤트 리스너 설정

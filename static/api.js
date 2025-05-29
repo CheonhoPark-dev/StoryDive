@@ -77,6 +77,14 @@ export async function createWorld(worldData) {
     });
 }
 
+// FormData를 위한 별도 함수 (파일 업로드 포함 세계관 생성)
+export async function createWorldWithFormData(formData) {
+    return fetchAPI('/worlds', {
+        method: 'POST',
+        body: formData, // FormData는 Content-Type을 자동으로 설정하므로 headers에서 제외
+    });
+}
+
 export async function updateWorld(worldId, worldData) {
     // worldData가 FormData 인스턴스인지 확인
     const isFormData = worldData instanceof FormData;

@@ -7,15 +7,16 @@
 {% block content %}
 <style>
 /* create_world.html과 동일한 스타일 적용 */
-.systems-section-container {
+.systems-section-container, .endings-section-container {
     overflow: hidden;
 }
 
-#create-world-systems-container, #edit-world-systems-container {
+#create-world-systems-container, #edit-world-systems-container,
+#create-world-endings-container, #edit-world-endings-container {
     /* 특별한 스타일 불필요 */
 }
 
-.systems-flex-wrapper {
+.systems-flex-wrapper, .endings-flex-wrapper {
     display: flex;
     overflow-x: auto;
     overflow-y: hidden;
@@ -24,7 +25,7 @@
     /* min-height: 230px; */ /* 시스템 없을 때 큰 여백을 만들던 부분 제거 또는 조정 */
 }
 
-.system-item {
+.system-item, .ending-item {
     flex: 0 0 280px;
     padding: 1rem;
     border: 1px solid #4A5568; /* gray-600 */
@@ -35,7 +36,12 @@
     gap: 0.5rem;
 }
 
-.system-item label {
+.ending-item {
+    border-color: #7C3AED; /* purple-600 for endings */
+    background-color: #2D1B69; /* darker purple */
+}
+
+.system-item label, .ending-item label {
     display: block;
     margin-bottom: 0.25rem; 
     font-size: 0.875rem; 
@@ -43,9 +49,15 @@
     font-weight: 500; 
 }
 
+.ending-item label {
+    color: #C4B5FD; /* purple-300 */
+}
+
 .system-item input[type="text"],
 .system-item input[type="number"],
-.system-item textarea {
+.system-item textarea,
+.ending-item input[type="text"],
+.ending-item textarea {
     width: 100%;
     padding: 0.75rem; 
     font-size: 0.875rem; 
@@ -56,6 +68,12 @@
     box-sizing: border-box; 
 }
 
+.ending-item input[type="text"],
+.ending-item textarea {
+    background-color: #1E1B3C; /* darker purple */
+    border-color: #6B46C1; /* purple-600 */
+}
+
 .system-item input[type="text"]:focus,
 .system-item input[type="number"]:focus,
 .system-item textarea:focus {
@@ -63,32 +81,54 @@
     border-color: #6366F1; /* indigo-500 */
 }
 
-.system-item textarea {
+.ending-item input[type="text"]:focus,
+.ending-item textarea:focus {
+    outline: none;
+    border-color: #8B5CF6; /* purple-500 */
+}
+
+.system-item textarea, .ending-item textarea {
     min-height: 70px; 
 }
 
-.system-item .btn-danger {
+.ending-item .ending-content-textarea {
+    min-height: 100px; /* 엔딩 내용은 더 긴 텍스트 필요 */
+}
+
+.system-item .btn-danger, .ending-item .btn-danger {
     padding: 0.375rem 0.75rem;
     font-size: 0.75rem; 
     margin-top: auto; 
 }
 
-.systems-flex-wrapper::-webkit-scrollbar {
+.systems-flex-wrapper::-webkit-scrollbar,
+.endings-flex-wrapper::-webkit-scrollbar {
     height: 8px;
 }
 
-.systems-flex-wrapper::-webkit-scrollbar-track {
+.systems-flex-wrapper::-webkit-scrollbar-track,
+.endings-flex-wrapper::-webkit-scrollbar-track {
     background: #1A202C;
     border-radius: 4px;
 }
 
-.systems-flex-wrapper::-webkit-scrollbar-thumb {
+.systems-flex-wrapper::-webkit-scrollbar-thumb,
+.endings-flex-wrapper::-webkit-scrollbar-thumb {
     background: #4A5568;
     border-radius: 4px;
 }
 
-.systems-flex-wrapper::-webkit-scrollbar-thumb:hover {
+.endings-flex-wrapper::-webkit-scrollbar-thumb {
+    background: #7C3AED; /* purple-600 */
+}
+
+.systems-flex-wrapper::-webkit-scrollbar-thumb:hover,
+.endings-flex-wrapper::-webkit-scrollbar-thumb:hover {
     background: #718096;
+}
+
+.endings-flex-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #8B5CF6; /* purple-500 */
 }
 </style>
 <div id="edit-world-form-container" class="content-card p-8 rounded-xl shadow-lg mb-8 md:col-span-2 lg:col-span-3 card-hover">
@@ -113,6 +153,21 @@
             <button type="button" id="edit-add-world-system-btn"
                     class="mt-4 btn-secondary text-white px-4 py-2 rounded-md text-sm font-medium transition hover:bg-teal-600 btn-glow">
                 <i class="fas fa-plus mr-1"></i> 시스템 추가
+            </button>
+        </div>
+
+        <!-- 엔딩 설정 섹션 (수정 폼) -->
+        <div class="mb-6 p-4 border border-purple-700 rounded-lg endings-section-container">
+            <h4 class="text-lg font-medium text-purple-300 mb-3">엔딩 설정 (선택 사항)</h4>
+            <div id="edit-world-endings-container">
+                <div class="endings-flex-wrapper">
+                    <!-- 엔딩 아이템들이 여기에 동적으로 추가됩니다 (JavaScript에 의해) -->
+                </div>
+                <p id="edit-no-endings-message" class="text-sm text-purple-400 mt-2">아직 추가된 엔딩이 없습니다. "엔딩 추가" 버튼을 눌러 다양한 스토리 결말을 설정하세요.</p>
+            </div>
+            <button type="button" id="edit-add-world-ending-btn"
+                    class="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium transition btn-glow">
+                <i class="fas fa-flag-checkered mr-1"></i> 엔딩 추가
             </button>
         </div>
 

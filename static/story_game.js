@@ -9,6 +9,16 @@ export class StoryGameManager {
         this.storySessionId = null;
         this.currentWorldTitle = null;
         
+        // 엔딩 시스템 관련
+        this.worldEndings = [];
+        this.worldSystemConfigs = {}; // 세계관의 시스템 설정 저장
+        this.gameStats = {
+            totalTurns: 0,
+            choicesMade: 0,
+            playStartTime: null,
+            lastActionTime: null
+        };
+        
         // DOM 요소들
         this.storyTextElement = null;
         this.choicesContainer = null;
@@ -145,23 +155,662 @@ export class StoryGameManager {
     }
 
     updateActiveSystemsDisplay(activeSystems) {
-        if (!this.gameActiveSystemsDisplay) return;
+        console.log("[DEBUG updateActiveSystemsDisplay] Called with:", activeSystems);
+        console.log("[DEBUG updateActiveSystemsDisplay] Type:", typeof activeSystems);
+        console.log("[DEBUG updateActiveSystemsDisplay] Keys:", activeSystems ? Object.keys(activeSystems) : "null/undefined");
+        
+        if (!this.gameActiveSystemsDisplay) {
+            console.log("[DEBUG updateActiveSystemsDisplay] gameActiveSystemsDisplay element not found!");
+            return;
+        }
         
         this.gameActiveSystemsDisplay.innerHTML = '';
         if (activeSystems && Object.keys(activeSystems).length > 0) {
-            const ul = document.createElement('ul');
-            ul.className = 'list-disc pl-5 space-y-1 text-sm text-gray-300';
+            console.log("[DEBUG updateActiveSystemsDisplay] Creating systems display for:", activeSystems);
+            
+            // 시스템 컨테이너 생성
+            const systemsContainer = document.createElement('div');
+            systemsContainer.className = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 p-4';
             
             for (const systemName in activeSystems) {
-                const listItem = document.createElement('li');
-                listItem.textContent = `${systemName}: ${activeSystems[systemName]}`;
-                ul.appendChild(listItem);
+                const systemValue = activeSystems[systemName];
+                const systemCard = this.createSystemCard(systemName, systemValue);
+                systemsContainer.appendChild(systemCard);
+                console.log(`[DEBUG updateActiveSystemsDisplay] Added system card: ${systemName} = ${systemValue}`);
             }
             
-            this.gameActiveSystemsDisplay.appendChild(ul);
+            this.gameActiveSystemsDisplay.appendChild(systemsContainer);
             this.gameActiveSystemsDisplay.classList.remove('hidden');
+            console.log("[DEBUG updateActiveSystemsDisplay] Systems display shown");
         } else {
             this.gameActiveSystemsDisplay.classList.add('hidden');
+            console.log("[DEBUG updateActiveSystemsDisplay] Systems display hidden - no systems or empty object");
+        }
+    }
+
+    /**
+     * 개별 시스템 카드를 생성합니다
+     */
+    createSystemCard(systemName, systemValue) {
+        const card = document.createElement('div');
+        card.className = 'system-card-dark rounded-lg p-3 min-w-[120px] backdrop-blur-sm border transition-all duration-200';
+        
+        // 시스템별 설정
+        const systemConfig = this.getSystemConfig(systemName);
+        const isLimitedSystem = systemConfig.isLimited;
+        const icon = systemConfig.icon;
+        
+        if (isLimitedSystem) {
+            // 제한된 시스템: 프로그레스 바 사용
+            const percentage = Math.max(0, Math.min(100, (systemValue / systemConfig.maxValue) * 100));
+            const colorClass = this.getSystemColorClass(systemName, percentage);
+            
+            card.innerHTML = `
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center space-x-2">
+                        <i class="${icon} text-sm ${colorClass}"></i>
+                        <span class="text-xs font-medium text-gray-200">${systemName}</span>
+                    </div>
+                    <span class="text-xs font-bold ${colorClass}">${systemValue}</span>
+                </div>
+                <div class="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
+                    <div class="h-full rounded-full transition-all duration-500 ${this.getProgressBarColorClass(systemName, percentage)}" 
+                         style="width: ${percentage}%"></div>
+                </div>
+                <div class="text-xs text-gray-400 mt-1 text-center">${this.getSystemStatusText(systemName, systemValue)}</div>
+            `;
+        } else {
+            // 무제한 시스템: 단순 숫자 표시
+            const colorClass = this.getUnlimitedSystemColorClass(systemName, systemValue);
+            const formattedValue = this.formatSystemValue(systemName, systemValue);
+            
+            card.innerHTML = `
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-2">
+                        <i class="${icon} text-lg ${colorClass}"></i>
+                        <span class="text-xs font-medium text-gray-200">${systemName}</span>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xl font-bold ${colorClass} mb-1">${formattedValue}</div>
+                    <div class="text-xs text-gray-400">${this.getUnlimitedSystemStatusText(systemName, systemValue)}</div>
+                </div>
+            `;
+        }
+        
+        return card;
+    }
+
+    /**
+     * 시스템별 설정 정보를 반환합니다
+     */
+    getSystemConfig(systemName) {
+        // 세계관에서 설정된 시스템 설정이 있는지 확인
+        if (this.worldSystemConfigs && this.worldSystemConfigs[systemName]) {
+            const worldConfig = this.worldSystemConfigs[systemName];
+            return {
+                icon: this.getSystemIcon(systemName),
+                maxValue: worldConfig.max_value || 100,
+                isLimited: worldConfig.use_progress_bar !== false // 기본값은 true
+            };
+        }
+        
+        // 기본 설정 (하드코딩된 값들)
+        const configs = {
+            // 제한된 시스템들 (프로그레스 바 사용)
+            '생명력': { icon: 'fas fa-heart', maxValue: 100, isLimited: true },
+            '체력': { icon: 'fas fa-heart', maxValue: 100, isLimited: true },
+            '마나': { icon: 'fas fa-magic', maxValue: 100, isLimited: true },
+            '정신력': { icon: 'fas fa-brain', maxValue: 100, isLimited: true },
+            '갈증': { icon: 'fas fa-tint', maxValue: 100, isLimited: true },
+            '허기': { icon: 'fas fa-utensils', maxValue: 100, isLimited: true },
+            '피로도': { icon: 'fas fa-bed', maxValue: 100, isLimited: true },
+            '정신 오염도': { icon: 'fas fa-skull', maxValue: 100, isLimited: true },
+            '오염도': { icon: 'fas fa-skull', maxValue: 100, isLimited: true },
+            '명성': { icon: 'fas fa-star', maxValue: 100, isLimited: true },
+            '평판': { icon: 'fas fa-thumbs-up', maxValue: 100, isLimited: true },
+            '친밀도': { icon: 'fas fa-heart', maxValue: 100, isLimited: true },
+            '무기숙련도': { icon: 'fas fa-sword', maxValue: 100, isLimited: true },
+            '방어력': { icon: 'fas fa-shield-alt', maxValue: 100, isLimited: true },
+            '공격력': { icon: 'fas fa-fist-raised', maxValue: 100, isLimited: true },
+            
+            // 무제한 시스템들 (숫자 표시)
+            '돈': { icon: 'fas fa-coins', isLimited: false },
+            '골드': { icon: 'fas fa-coins', isLimited: false },
+            '경험치': { icon: 'fas fa-trophy', isLimited: false },
+            '레벨': { icon: 'fas fa-level-up-alt', isLimited: false },
+            '스킬포인트': { icon: 'fas fa-star', isLimited: false },
+            '점수': { icon: 'fas fa-chart-line', isLimited: false },
+            '킬수': { icon: 'fas fa-crosshairs', isLimited: false },
+            '아이템수': { icon: 'fas fa-box', isLimited: false }
+        };
+        
+        return configs[systemName] || { 
+            icon: this.getSystemIcon(systemName), 
+            maxValue: 100, 
+            isLimited: true 
+        };
+    }
+
+    /**
+     * 시스템 이름에 따른 아이콘을 반환합니다
+     */
+    getSystemIcon(systemName) {
+        const iconMap = {
+            '생명력': 'fas fa-heart',
+            '체력': 'fas fa-heart',
+            '마나': 'fas fa-magic',
+            '정신력': 'fas fa-brain',
+            '갈증': 'fas fa-tint',
+            '허기': 'fas fa-utensils',
+            '피로도': 'fas fa-bed',
+            '정신 오염도': 'fas fa-skull',
+            '오염도': 'fas fa-skull',
+            '돈': 'fas fa-coins',
+            '골드': 'fas fa-coins',
+            '명성': 'fas fa-star',
+            '평판': 'fas fa-thumbs-up',
+            '친밀도': 'fas fa-heart',
+            '경험치': 'fas fa-trophy',
+            '레벨': 'fas fa-level-up-alt',
+            '스킬포인트': 'fas fa-star',
+            '점수': 'fas fa-chart-line',
+            '킬수': 'fas fa-crosshairs',
+            '아이템수': 'fas fa-box',
+            '무기숙련도': 'fas fa-sword',
+            '방어력': 'fas fa-shield-alt',
+            '공격력': 'fas fa-fist-raised'
+        };
+        
+        return iconMap[systemName] || 'fas fa-chart-bar';
+    }
+
+    /**
+     * 시스템 상태에 따른 텍스트 색상 클래스를 반환합니다
+     */
+    getSystemColorClass(systemName, percentage) {
+        // 부정적 시스템 (높을수록 나쁨)
+        const negativeStats = ['피로도', '정신 오염도', '오염도', '갈증', '허기'];
+        
+        if (negativeStats.includes(systemName)) {
+            if (percentage >= 80) return 'text-red-400';
+            if (percentage >= 60) return 'text-orange-400';
+            if (percentage >= 40) return 'text-yellow-400';
+            return 'text-green-400';
+        } else {
+            // 긍정적 시스템 (높을수록 좋음)
+            if (percentage <= 20) return 'text-red-400';
+            if (percentage <= 40) return 'text-orange-400';
+            if (percentage <= 60) return 'text-yellow-400';
+            return 'text-green-400';
+        }
+    }
+
+    /**
+     * 프로그레스 바 색상 클래스를 반환합니다
+     */
+    getProgressBarColorClass(systemName, percentage) {
+        // 부정적 시스템 (높을수록 나쁨)
+        const negativeStats = ['피로도', '정신 오염도', '오염도', '갈증', '허기'];
+        
+        if (negativeStats.includes(systemName)) {
+            if (percentage >= 80) return 'bg-red-500';
+            if (percentage >= 60) return 'bg-orange-500';
+            if (percentage >= 40) return 'bg-yellow-500';
+            return 'bg-green-500';
+        } else {
+            // 긍정적 시스템 (높을수록 좋음)
+            if (percentage <= 20) return 'bg-red-500';
+            if (percentage <= 40) return 'bg-orange-500';
+            if (percentage <= 60) return 'bg-yellow-500';
+            return 'bg-green-500';
+        }
+    }
+
+    /**
+     * 시스템 상태 텍스트를 반환합니다
+     */
+    getSystemStatusText(systemName, systemValue) {
+        const negativeStats = ['피로도', '정신 오염도', '오염도', '갈증', '허기'];
+        
+        if (negativeStats.includes(systemName)) {
+            if (systemValue >= 80) return '위험';
+            if (systemValue >= 60) return '주의';
+            if (systemValue >= 40) return '경고';
+            if (systemValue >= 20) return '양호';
+            return '좋음';
+        } else {
+            if (systemValue <= 20) return '위험';
+            if (systemValue <= 40) return '낮음';
+            if (systemValue <= 60) return '보통';
+            if (systemValue <= 80) return '좋음';
+            return '최고';
+        }
+    }
+
+    /**
+     * 무제한 시스템의 색상 클래스를 반환합니다
+     */
+    getUnlimitedSystemColorClass(systemName, systemValue) {
+        // 돈/골드 시스템
+        if (['돈', '골드'].includes(systemName)) {
+            if (systemValue >= 1000) return 'text-yellow-400';
+            if (systemValue >= 500) return 'text-green-400';
+            if (systemValue >= 100) return 'text-blue-400';
+            if (systemValue <= 0) return 'text-red-400';
+            return 'text-gray-300';
+        }
+        
+        // 레벨 시스템
+        if (systemName === '레벨') {
+            if (systemValue >= 50) return 'text-purple-400';
+            if (systemValue >= 30) return 'text-yellow-400';
+            if (systemValue >= 10) return 'text-green-400';
+            return 'text-blue-400';
+        }
+        
+        // 경험치/점수 시스템
+        if (['경험치', '점수'].includes(systemName)) {
+            if (systemValue >= 10000) return 'text-purple-400';
+            if (systemValue >= 5000) return 'text-yellow-400';
+            if (systemValue >= 1000) return 'text-green-400';
+            return 'text-blue-400';
+        }
+        
+        // 기타 무제한 시스템
+        if (systemValue >= 100) return 'text-purple-400';
+        if (systemValue >= 50) return 'text-yellow-400';
+        if (systemValue >= 10) return 'text-green-400';
+        if (systemValue <= 0) return 'text-red-400';
+        return 'text-blue-400';
+    }
+
+    /**
+     * 시스템 수치를 포맷팅합니다
+     */
+    formatSystemValue(systemName, systemValue) {
+        // 돈/골드는 천 단위 구분
+        if (['돈', '골드'].includes(systemName)) {
+            if (systemValue >= 1000000) {
+                return Math.floor(systemValue / 1000000) + 'M';
+            } else if (systemValue >= 1000) {
+                return Math.floor(systemValue / 1000) + 'K';
+            }
+        }
+        
+        // 경험치/점수도 축약 표시
+        if (['경험치', '점수'].includes(systemName)) {
+            if (systemValue >= 1000000) {
+                return Math.floor(systemValue / 1000000) + 'M';
+            } else if (systemValue >= 1000) {
+                return Math.floor(systemValue / 1000) + 'K';
+            }
+        }
+        
+        return systemValue.toString();
+    }
+
+    /**
+     * 무제한 시스템의 상태 텍스트를 반환합니다
+     */
+    getUnlimitedSystemStatusText(systemName, systemValue) {
+        // 돈/골드 시스템
+        if (['돈', '골드'].includes(systemName)) {
+            if (systemValue >= 10000) return '부자';
+            if (systemValue >= 1000) return '부유함';
+            if (systemValue >= 500) return '여유로움';
+            if (systemValue >= 100) return '보통';
+            if (systemValue > 0) return '부족함';
+            return '가난함';
+        }
+        
+        // 레벨 시스템
+        if (systemName === '레벨') {
+            if (systemValue >= 50) return '전설급';
+            if (systemValue >= 30) return '고급자';
+            if (systemValue >= 10) return '중급자';
+            return '초보자';
+        }
+        
+        // 경험치/점수 시스템
+        if (['경험치', '점수'].includes(systemName)) {
+            if (systemValue >= 100000) return '마스터';
+            if (systemValue >= 10000) return '전문가';
+            if (systemValue >= 1000) return '숙련자';
+            return '초심자';
+        }
+        
+        // 기타 시스템
+        if (systemValue >= 100) return '많음';
+        if (systemValue >= 50) return '보통';
+        if (systemValue >= 10) return '적음';
+        if (systemValue <= 0) return '없음';
+        return '조금';
+    }
+
+    /**
+     * 세계관의 엔딩 정보를 설정합니다
+     */
+    setWorldEndings(endings) {
+        console.log("[DEBUG setWorldEndings] Raw endings data:", endings);
+        console.log("[DEBUG setWorldEndings] Type of endings:", typeof endings);
+        
+        let parsedEndings = [];
+        
+        if (typeof endings === 'string') {
+            try {
+                parsedEndings = JSON.parse(endings);
+                console.log("[DEBUG setWorldEndings] Parsed endings from JSON string:", parsedEndings);
+            } catch (e) {
+                console.error("[DEBUG setWorldEndings] Failed to parse endings JSON:", e);
+                parsedEndings = [];
+            }
+        } else if (Array.isArray(endings)) {
+            parsedEndings = endings;
+            console.log("[DEBUG setWorldEndings] Endings already an array:", parsedEndings);
+        } else {
+            console.warn("[DEBUG setWorldEndings] Unexpected endings format:", endings);
+            parsedEndings = [];
+        }
+        
+        this.worldEndings = parsedEndings || [];
+        console.log("[DEBUG setWorldEndings] Final world endings set:", this.worldEndings);
+        
+        // 각 엔딩의 구조 확인
+        this.worldEndings.forEach((ending, index) => {
+            console.log(`[DEBUG setWorldEndings] Ending ${index}:`, {
+                name: ending.name,
+                condition: ending.condition,
+                content: ending.content?.substring(0, 100) + '...'
+            });
+        });
+    }
+
+    /**
+     * 게임 통계를 업데이트합니다
+     */
+    updateGameStats(actionType, activeSystems = {}) {
+        if (actionType === 'start_new_adventure') {
+            this.gameStats.playStartTime = new Date();
+            this.gameStats.totalTurns = 0;
+            this.gameStats.choicesMade = 0;
+        } else if (actionType === 'continue_adventure') {
+            this.gameStats.totalTurns++;
+            this.gameStats.choicesMade++;
+        }
+        
+        this.gameStats.lastActionTime = new Date();
+        console.log("[DEBUG updateGameStats] Game stats updated:", this.gameStats);
+    }
+
+    /**
+     * 엔딩 조건을 타입별로 분류하고 단계적으로 체크합니다
+     */
+    checkEndingConditions(currentStory, activeSystems = {}) {
+        if (!this.worldEndings || this.worldEndings.length === 0) {
+            console.log("[DEBUG checkEndingConditions] No world endings available");
+            return null;
+        }
+
+        console.log("[DEBUG checkEndingConditions] Starting type-based ending check");
+        
+        for (const ending of this.worldEndings) {
+            const conditionType = this.determineConditionType(ending.condition);
+            console.log(`[DEBUG checkEndingConditions] Checking ending "${ending.name}" with type: ${conditionType}`);
+            
+            switch (conditionType) {
+                case 'system':
+                    if (this.checkSystemCondition(ending, activeSystems)) {
+                        console.log(`[DEBUG checkEndingConditions] ✅ SYSTEM ENDING TRIGGERED: ${ending.name}`);
+                        return ending;
+                    }
+                    break;
+                    
+                case 'keyword':
+                    if (this.checkKeywordCondition(ending, currentStory)) {
+                        console.log(`[DEBUG checkEndingConditions] ✅ KEYWORD ENDING TRIGGERED: ${ending.name}`);
+                        return ending;
+                    }
+                    break;
+                    
+                case 'story':
+                    // 스토리 조건은 백엔드 LLM에서만 처리 (프론트엔드에서는 체크하지 않음)
+                    console.log(`[DEBUG checkEndingConditions] Story condition detected, will be checked by backend LLM`);
+                    break;
+                    
+                case 'hybrid':
+                    // 시스템 조건을 먼저 체크하고, 통과하면 스토리 조건도 확인
+                    if (this.checkSystemCondition(ending, activeSystems)) {
+                        console.log(`[DEBUG checkEndingConditions] System part of hybrid condition met, backend will verify story part`);
+                        // 백엔드에서 추가 검증 필요
+                    }
+                    break;
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * 엔딩 조건의 타입을 결정합니다
+     */
+    determineConditionType(condition) {
+        if (!condition) return 'unknown';
+        
+        const conditionLower = condition.toLowerCase();
+        
+        // 시스템 수치 조건 키워드들
+        const systemKeywords = ['생명력', '체력', '마나', '돈', '골드', '명성', '평판', '친밀도', '스탯', '포인트', '수치'];
+        const systemOperators = ['0', '100', '최대', '최소', '높', '낮', '>=', '<=', '=', '+', '-'];
+        
+        // 명확한 키워드 조건들
+        const keywordPatterns = ['테스트', '완료', '성공', '승리', '클리어', '달성'];
+        
+        // 복잡한 스토리 상황 조건들  
+        const storyPatterns = ['자살', '포기', '절망', '죽음', '사망', '실패', '패배', '배신', '사랑', '결혼', '구원', '구해', '희생'];
+        
+        // 시스템 조건 체크
+        const hasSystemKeyword = systemKeywords.some(keyword => conditionLower.includes(keyword));
+        const hasSystemOperator = systemOperators.some(op => conditionLower.includes(op));
+        
+        // 키워드 조건 체크  
+        const hasKeywordPattern = keywordPatterns.some(keyword => conditionLower.includes(keyword));
+        
+        // 스토리 조건 체크
+        const hasStoryPattern = storyPatterns.some(pattern => conditionLower.includes(pattern));
+        
+        if (hasSystemKeyword && hasSystemOperator) {
+            if (hasStoryPattern) {
+                return 'hybrid'; // 시스템 + 스토리 조건
+            } else {
+                return 'system'; // 순수 시스템 조건
+            }
+        } else if (hasKeywordPattern && !hasStoryPattern) {
+            return 'keyword'; // 단순 키워드 조건
+        } else if (hasStoryPattern) {
+            return 'story'; // 복잡한 스토리 조건
+        } else {
+            return 'unknown';
+        }
+    }
+
+    /**
+     * 시스템 수치 기반 조건을 체크합니다
+     */
+    checkSystemCondition(ending, activeSystems) {
+        const condition = ending.condition.toLowerCase();
+        
+        console.log(`[DEBUG checkSystemCondition] Checking condition: "${condition}"`);
+        console.log(`[DEBUG checkSystemCondition] Active systems:`, activeSystems);
+        
+        for (const [systemName, systemValue] of Object.entries(activeSystems)) {
+            const systemNameLower = systemName.toLowerCase();
+            
+            if (condition.includes(systemNameLower)) {
+                console.log(`[DEBUG checkSystemCondition] Checking system: ${systemName} = ${systemValue}`);
+                
+                // 0 이하 조건 (가장 일반적인 엔딩 조건)
+                if ((condition.includes('0') || condition.includes('최소') || condition.includes('없') || condition.includes('떨어지')) && systemValue <= 0) {
+                    console.log(`[DEBUG checkSystemCondition] ✅ Zero/Below condition met: ${systemValue} <= 0`);
+                    return true;
+                }
+                
+                // 정확한 수치 조건들
+                if (condition.includes('100') && systemValue >= 100) {
+                    console.log(`[DEBUG checkSystemCondition] ✅ Max(100) condition met: ${systemValue} >= 100`);
+                    return true;
+                }
+                if (condition.includes('50') && systemValue >= 50) {
+                    console.log(`[DEBUG checkSystemCondition] ✅ Mid(50) condition met: ${systemValue} >= 50`);
+                    return true;
+                }
+                
+                // 범위 조건들
+                if ((condition.includes('높') || condition.includes('최대')) && systemValue >= 80) {
+                    console.log(`[DEBUG checkSystemCondition] ✅ High condition met: ${systemValue} >= 80`);
+                    return true;
+                }
+                if ((condition.includes('낮') || condition.includes('적')) && systemValue <= 20) {
+                    console.log(`[DEBUG checkSystemCondition] ✅ Low condition met: ${systemValue} <= 20`);
+                    return true;
+                }
+                
+                // 음수 값 처리 (0 이하 조건의 확장)
+                if (systemValue < 0 && (condition.includes('0') || condition.includes('없') || condition.includes('고갈'))) {
+                    console.log(`[DEBUG checkSystemCondition] ✅ Negative value condition met: ${systemValue} < 0`);
+                    return true;
+                }
+                
+                console.log(`[DEBUG checkSystemCondition] ❌ No condition matched for ${systemName} = ${systemValue}`);
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * 키워드 기반 조건을 체크합니다
+     */
+    checkKeywordCondition(ending, currentStory) {
+        const condition = ending.condition.toLowerCase();
+        const story = currentStory?.toLowerCase() || '';
+        
+        // 정확한 키워드 매칭
+        const keywordPatterns = ['테스트', '완료', '성공', '승리', '클리어', '달성'];
+        
+        for (const keyword of keywordPatterns) {
+            if (condition.includes(keyword) && story.includes(keyword)) {
+                console.log(`[DEBUG checkKeywordCondition] ✅ Keyword match: "${keyword}"`);
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * 엔딩을 트리거하고 UI를 표시합니다
+     */
+    async triggerEnding(ending) {
+        console.log("[DEBUG triggerEnding] Triggering ending:", ending.name);
+        
+        try {
+            // LLM으로 풍성한 엔딩 스토리 생성
+            const enhancedEndingContent = await this.generateEnhancedEndingStory(ending);
+            
+            // 게임 통계 계산
+            const playTimeMinutes = this.calculatePlayTime();
+            const gameStats = {
+                totalTurns: this.gameStats.totalTurns,
+                playTimeMinutes: playTimeMinutes,
+                choicesMade: this.gameStats.choicesMade
+            };
+
+            // 엔딩 정보 준비
+            const endingData = {
+                name: ending.name,
+                condition: ending.condition,
+                content: enhancedEndingContent || ending.content
+            };
+
+            // EndingManager를 통해 엔딩 달성 UI 표시
+            if (window.endingManager) {
+                window.endingManager.showEndingAchievement(endingData, gameStats);
+            } else {
+                console.error("[DEBUG triggerEnding] EndingManager not found");
+                alert(`🎉 엔딩 달성: ${ending.name}!\n\n${enhancedEndingContent || ending.content}`);
+            }
+
+            // 엔딩 달성을 백엔드에 저장 (선택사항)
+            await this.saveEndingAchievement(ending, gameStats);
+
+        } catch (error) {
+            console.error("[DEBUG triggerEnding] Error triggering ending:", error);
+        }
+    }
+
+    /**
+     * LLM으로 엔딩 스토리를 확장합니다
+     */
+    async generateEnhancedEndingStory(ending) {
+        try {
+            console.log("[DEBUG generateEnhancedEndingStory] Generating enhanced ending story");
+            
+            const prompt = {
+                action_type: "generate_ending_story",
+                ending_name: ending.name,
+                ending_condition: ending.condition,
+                basic_ending_content: ending.content,
+                story_history: this.currentStoryContext.history,
+                world_title: this.currentWorldTitle,
+                game_stats: this.gameStats
+            };
+
+            const response = await api.postStoryAction(prompt);
+            
+            if (response && response.enhanced_ending) {
+                return response.enhanced_ending;
+            } else {
+                console.log("[DEBUG generateEnhancedEndingStory] No enhanced ending in response, using original");
+                return ending.content;
+            }
+            
+        } catch (error) {
+            console.error("[DEBUG generateEnhancedEndingStory] Error generating enhanced ending:", error);
+            return ending.content;
+        }
+    }
+
+    /**
+     * 플레이 시간을 계산합니다
+     */
+    calculatePlayTime() {
+        if (!this.gameStats.playStartTime) return 0;
+        
+        const endTime = this.gameStats.lastActionTime || new Date();
+        const timeDiff = endTime - this.gameStats.playStartTime;
+        return Math.floor(timeDiff / 60000); // 분 단위
+    }
+
+    /**
+     * 엔딩 달성을 백엔드에 저장합니다
+     */
+    async saveEndingAchievement(ending, gameStats) {
+        try {
+            const achievementData = {
+                world_id: this.currentWorldId,
+                ending_name: ending.name,
+                ending_content: ending.content,
+                game_stats: gameStats,
+                achieved_at: new Date().toISOString()
+            };
+
+            // TODO: 엔딩 달성 저장 API 엔드포인트 추가
+            // const result = await api.saveEndingAchievement(achievementData);
+            console.log("[DEBUG saveEndingAchievement] Would save achievement:", achievementData);
+            
+        } catch (error) {
+            console.error("[DEBUG saveEndingAchievement] Error saving ending achievement:", error);
         }
     }
 
@@ -237,11 +886,25 @@ export class StoryGameManager {
     }
 
     async processStoryResponse(actionType, response, sessionIdToUse, payloadData) {
+        // 게임 통계 업데이트
+        this.updateGameStats(actionType, response.active_systems);
+        
         if (actionType === 'start_new_adventure') {
             this.storySessionId = response.session_id || sessionIdToUse;
             this.currentWorldId = response.world_id || payloadData.world_key;
             this.currentWorldTitle = response.world_title || payloadData.world_title;
             this.currentStoryContext.history = response.context?.history || "";
+            
+            // 세계관 엔딩 정보 로드
+            if (response.world_endings) {
+                this.setWorldEndings(response.world_endings);
+            }
+            
+            // 세계관 시스템 설정 로드
+            if (response.system_configs) {
+                this.worldSystemConfigs = response.system_configs;
+                console.log("[DEBUG processStoryResponse] Loaded world system configs:", this.worldSystemConfigs);
+            }
             
             this.showGameScreen(this.currentWorldTitle);
             this.displayStory(response.new_story_segment || response.context?.history || "이야기를 시작합니다.");
@@ -265,6 +928,29 @@ export class StoryGameManager {
             this.updateChoices(response.choices);
             this.updateActiveSystemsDisplay(response.active_systems || {});
             
+            // 프론트엔드에서 먼저 시스템/키워드 조건 체크
+            const frontendTriggeredEnding = this.checkEndingConditions(
+                response.new_story_segment,
+                response.active_systems
+            );
+            
+            // 백엔드에서 스토리 조건 체크 결과 확인
+            let finalTriggeredEnding = frontendTriggeredEnding || response.triggered_ending;
+            
+            if (finalTriggeredEnding) {
+                const triggerSource = frontendTriggeredEnding ? "frontend" : "backend";
+                console.log(`[DEBUG processStoryResponse] Ending triggered by ${triggerSource}:`, finalTriggeredEnding);
+                
+                // 엔딩이 트리거된 경우, 현재 선택지를 저장하고 숨기기
+                this.lastChoices = response.choices || [];
+                this.updateChoices([]);
+                setTimeout(() => {
+                    this.triggerEnding(finalTriggeredEnding);
+                }, 2000); // 2초 후 엔딩 표시 (스토리를 읽을 시간)
+            } else {
+                console.log("[DEBUG processStoryResponse] No ending triggered");
+            }
+            
             await this.saveOrUpdateOngoingAdventure({
                 sessionId: this.storySessionId,
                 worldId: this.currentWorldId,
@@ -282,6 +968,17 @@ export class StoryGameManager {
                 this.currentWorldId = response.world_id;
                 this.currentWorldTitle = response.world_title || "불러온 모험";
                 this.currentStoryContext.history = response.history || "";
+                
+                // 로드된 게임의 엔딩 정보 설정
+                if (response.world_endings) {
+                    this.setWorldEndings(response.world_endings);
+                }
+                
+                // 로드된 게임의 시스템 설정 로드
+                if (response.system_configs) {
+                    this.worldSystemConfigs = response.system_configs;
+                    console.log("[DEBUG processStoryResponse] Loaded world system configs from saved game:", this.worldSystemConfigs);
+                }
                 
                 this.displayStory(response.last_response || response.history || "이야기를 불러왔습니다.");
                 this.updateChoices(response.choices || []);

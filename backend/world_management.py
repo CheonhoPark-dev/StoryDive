@@ -181,6 +181,28 @@ def create_world():
     print(f"--- [DEBUG] create_world: Parsed systems: {systems} (from: {systems_str}) ---")
     print(f"--- [DEBUG] create_world: Parsed system_configs: {system_configs} (from: {system_configs_str}) ---")
 
+    # 엔딩 데이터 처리
+    endings_str = data.get('endings')
+    endings = []
+    if endings_str:
+        try:
+            if isinstance(endings_str, str):
+                endings = json.loads(endings_str)
+        except json.JSONDecodeError:
+            return jsonify({"error": "엔딩(endings) 데이터 형식이 잘못되었습니다 (JSON 파싱 실패)."}), 400
+        
+        if not isinstance(endings, list):
+            return jsonify({"error": "엔딩(endings)은 배열이어야 합니다."}), 400
+        
+        # 엔딩 데이터 유효성 검사
+        for i, ending in enumerate(endings):
+            if not isinstance(ending, dict):
+                return jsonify({"error": f"엔딩 {i+1}번은 객체여야 합니다."}), 400
+            if 'name' not in ending or not isinstance(ending['name'], str) or not ending['name'].strip():
+                return jsonify({"error": f"엔딩 {i+1}번의 이름(name)은 필수이며 비어있지 않은 문자열이어야 합니다."}), 400
+            # condition과 content는 선택사항이므로 빈 문자열도 허용
+    
+    print(f"--- [DEBUG] create_world: Parsed endings: {endings} (from: {endings_str}) ---")
 
     client = get_supabase_service_client()
     if not client:
@@ -199,7 +221,8 @@ def create_world():
             "cover_image_url": cover_image_public_url, # Supabase Storage에서 받은 공개 URL
             "starting_point": starting_point.strip() if starting_point and isinstance(starting_point, str) else (starting_point if starting_point is None else ""),
             "systems": systems,
-            "system_configs": system_configs
+            "system_configs": system_configs,
+            "endings": endings
         }
         
         print(f"--- [DEBUG] Data to insert into DB: {world_data} ---")
@@ -453,6 +476,24 @@ def update_world(world_id):
             return jsonify({"error": f"시스템 설정(system_configs) 데이터 형식이 잘못되었습니다: {e}"}), 400
     elif 'system_configs' in form_data and not system_configs_str: # 빈 문자열로 전달된 경우
         update_data['system_configs'] = {}
+
+    # 엔딩 데이터 처리
+    endings_str = form_data.get('endings')
+    if endings_str:
+        try:
+            endings = json.loads(endings_str)
+            if isinstance(endings, list):
+                # 각 엔딩이 올바른 구조인지 검증
+                for ending in endings:
+                    if not isinstance(ending, dict) or 'name' not in ending:
+                        raise ValueError("Each ending must be an object with at least a 'name' field")
+                update_data['endings'] = endings
+            else:
+                raise ValueError("Endings must be a list")
+        except (json.JSONDecodeError, ValueError) as e:
+            return jsonify({"error": f"엔딩(endings) 데이터 형식이 잘못되었습니다: {e}"}), 400
+    elif 'endings' in form_data and not endings_str: # 빈 문자열로 전달된 경우 (모든 엔딩 삭제)
+        update_data['endings'] = []
 
     if not update_data and not new_cover_image_public_url: # 실제 변경된 내용이 있는지 확인
         # 새 이미지가 없고 다른 필드도 변경 사항이 없다면 304 Not Modified 또는 현재 데이터 반환

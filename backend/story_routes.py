@@ -10,7 +10,7 @@ import logging # 로깅 모듈 추가
 # Absolute imports from the 'backend' package perspective
 from backend.auth_utils import get_user_and_token_from_request, get_current_user_id_from_request
 from backend.database import get_db_client, save_story_to_db, load_story_from_db, get_ongoing_adventure
-from backend.gemini_utils import call_gemini_api, DEFAULT_PROMPT_TEMPLATE, summarize_story_with_gemini, START_WITH_USER_POINT_PROMPT_TEMPLATE, START_WITH_USER_POINT_CHOICES_ONLY_PROMPT_TEMPLATE
+from backend.gemini_utils import call_gemini_api, DEFAULT_PROMPT_TEMPLATE, summarize_story_with_gemini, START_WITH_USER_POINT_PROMPT_TEMPLATE, START_WITH_USER_POINT_CHOICES_ONLY_PROMPT_TEMPLATE, generate_enhanced_ending_story, check_ending_conditions_with_llm
 from backend.config import GEMINI_API_KEY
 
 # 로거 설정
@@ -63,6 +63,13 @@ def parse_and_apply_system_updates(text_with_updates, current_systems):
             try:
                 value_to_change = float(value_str)
                 original_value = systems_to_update[system_name_raw]
+                
+                # 시스템 변화량 일관성 검증 및 조정
+                normalized_value = normalize_system_change(system_name_raw, value_to_change, operator, original_value)
+                if normalized_value != value_to_change:
+                    logger.info(f"Normalized system change for '{system_name_raw}': {value_to_change} -> {normalized_value}")
+                    value_to_change = normalized_value
+                
                 new_value = original_value
                 if operator == '+':
                     new_value += value_to_change
@@ -109,6 +116,49 @@ def parse_and_apply_system_updates(text_with_updates, current_systems):
         "updates_applied": updates_applied_summary,
         "raw_updates": raw_updates_parsed
     }
+
+def normalize_system_change(system_name, change_value, operator, current_value):
+    """
+    시스템 변화량을 정규화하여 일관성을 보장합니다.
+    현재 수치와 관계없이 적절한 변화량을 유지합니다.
+    """
+    if operator == '=':
+        return change_value  # 절대값 설정은 정규화하지 않음
+    
+    abs_change = abs(change_value)
+    system_name_lower = system_name.lower()
+    
+    # 시스템별 최소 변화량 설정
+    min_changes = {
+        '생명력': 5, '체력': 5, '건강': 5, 'hp': 5, 'health': 5,
+        '마나': 3, 'mp': 3, 'mana': 3, '마법력': 3,
+        '돈': 10, '골드': 10, 'gold': 10, '자금': 10,
+        '명성': 2, '평판': 2, '인지도': 2,
+        '용기': 3, '의지': 3, '정신력': 3,
+        '피로': 3, '피로도': 3, '스트레스': 3,
+        '경험치': 5, 'exp': 5, '실력': 3
+    }
+    
+    # 적절한 최소값 찾기
+    min_change = 1  # 기본값
+    for keyword, min_val in min_changes.items():
+        if keyword in system_name_lower:
+            min_change = min_val
+            break
+    
+    # 변화량이 너무 작으면 조정
+    if abs_change < min_change and abs_change > 0:
+        normalized_change = min_change
+        logger.info(f"Increased change for '{system_name}' from {abs_change} to {normalized_change} (minimum threshold)")
+    # 변화량이 너무 크면 제한 (선택적)
+    elif abs_change > min_change * 10:
+        normalized_change = min_change * 8  # 최대 8배까지
+        logger.info(f"Reduced change for '{system_name}' from {abs_change} to {normalized_change} (maximum threshold)")
+    else:
+        normalized_change = abs_change
+    
+    # 원래 부호 유지
+    return normalized_change if change_value >= 0 else -normalized_change
 
 @story_bp.route('/action', methods=['POST'])
 def handle_action():
@@ -157,7 +207,7 @@ def handle_action():
         
         try:
             # DB에서 사용자 세계관 조회 시 starting_point 포함
-            world_response = db_client_instance.table("worlds").select("title, setting, starting_point, id, systems, system_configs").eq("id", world_key).maybe_single().execute()
+            world_response = db_client_instance.table("worlds").select("title, setting, starting_point, id, systems, system_configs, endings").eq("id", world_key).maybe_single().execute()
             
             if world_response and hasattr(world_response, 'data') and world_response.data:
                 world_data_from_db = world_response.data
@@ -167,14 +217,26 @@ def handle_action():
                 actual_world_id_to_save = world_data_from_db.get('id')
                 world_systems = world_data_from_db.get('systems', [])
                 world_system_configs = world_data_from_db.get('system_configs', {})
+                world_endings = world_data_from_db.get('endings', [])
 
                 if world_systems and isinstance(world_systems, list): # world_systems가 리스트인지 확인
+                    logger.debug(f"[DEBUG Systems] Processing world_systems: {world_systems}")
+                    logger.debug(f"[DEBUG Systems] world_system_configs: {world_system_configs}")
+                    
                     if world_system_configs and isinstance(world_system_configs, dict): # world_system_configs가 딕셔너리인지 확인
                         for system_name in world_systems:
-                            if system_name in world_system_configs and 'initial' in world_system_configs[system_name]:
-                                current_active_systems[system_name] = world_system_configs[system_name]['initial']
-                            else: # system_name이 configs에 없거나 initial이 없는 경우
-                                logger.warning(f"System '{system_name}' not found in system_configs or missing 'initial' value for world {world_key}. Defaulting to 0.")
+                            if system_name in world_system_configs:
+                                config = world_system_configs[system_name]
+                                # 'initial_value' 또는 'initial' 키 확인 
+                                if isinstance(config, dict):
+                                    initial_value = config.get('initial_value') or config.get('initial', 0)
+                                else:
+                                    initial_value = config if isinstance(config, (int, float)) else 0
+                                    
+                                current_active_systems[system_name] = initial_value
+                                logger.debug(f"[DEBUG Systems] System '{system_name}' initialized to {initial_value}")
+                            else: # system_name이 configs에 없는 경우
+                                logger.warning(f"System '{system_name}' not found in system_configs for world {world_key}. Defaulting to 0.")
                                 current_active_systems[system_name] = 0
                     else: # world_system_configs가 없거나 딕셔너리가 아닌 경우
                         logger.warning(f"world_system_configs is empty or not a dict for world {world_key}. Initializing all listed systems to 0.")
@@ -182,6 +244,8 @@ def handle_action():
                             current_active_systems[system_name] = 0
                 else: # world_systems가 없거나 리스트가 아닌 경우
                     logger.info(f"No systems list defined or systems is not a list for world {world_key}.")
+                    
+                logger.debug(f"[DEBUG Systems] Final current_active_systems: {current_active_systems}")
             else:
                 logger.error(f"World with ID {world_key} not found in database or no data returned.")
                 return jsonify({"error": f"선택한 세계관(ID: {world_key})을 찾을 수 없습니다."}), 404
@@ -234,7 +298,8 @@ def handle_action():
             'world_id': actual_world_id_to_save,
             'world_title': world_title_for_response,
             'active_systems': current_active_systems,
-            'system_configs': world_system_configs
+            'system_configs': world_system_configs,
+            'world_endings': world_endings
         }
         print(f"[DEBUG Systems] current_active_systems for session {session_id}: {current_active_systems}")
 
@@ -246,7 +311,8 @@ def handle_action():
             'system_configs': world_system_configs,
             'session_id': session_id,
             'world_id': actual_world_id_to_save,
-            'world_title': world_title_for_response
+            'world_title': world_title_for_response,
+            'world_endings': world_endings
         }
 
     elif action_type == "continue_adventure":
@@ -259,6 +325,7 @@ def handle_action():
         world_id_for_setting_cont = story_sessions_data[session_id].get('world_id')
         world_title_for_response = story_sessions_data[session_id].get('world_title', '알 수 없는 세계관')
         world_system_configs = story_sessions_data[session_id].get('system_configs', {})
+        world_endings = story_sessions_data[session_id].get('world_endings', [])
 
         if player_action_text:
             current_story_history += f"플레이어의 행동: {player_action_text}\n\n"
@@ -363,7 +430,8 @@ def handle_action():
                 "choices": [], 
                 "context": {'history': current_story_history},
                 'active_systems': current_active_systems, # 오류 발생 시점의 (업데이트 시도 전 또는 후의) 시스템 상태
-                'system_configs': world_system_configs
+                'system_configs': world_system_configs,
+                'world_endings': world_endings
             }
             return jsonify(response_data), 500
 
@@ -372,12 +440,32 @@ def handle_action():
         story_sessions_data[session_id]['last_choices'] = processed_choices_for_client # AI가 생성한 (태그 없는) 선택지 그대로 저장
         story_sessions_data[session_id]['last_ai_response'] = cleaned_generated_story_part
         
+        # 엔딩 조건 체크 (LLM 사용)
+        triggered_ending = None
+        if world_endings and cleaned_generated_story_part:
+            logger.debug(f"Checking ending conditions for session {session_id}")
+            try:
+                triggered_ending = check_ending_conditions_with_llm(
+                    story_content=cleaned_generated_story_part,
+                    story_history=current_story_history,
+                    world_endings=world_endings,
+                    active_systems=current_active_systems
+                )
+                if triggered_ending:
+                    logger.info(f"Ending triggered for session {session_id}: {triggered_ending.get('name')}")
+                else:
+                    logger.debug(f"No ending triggered for session {session_id}")
+            except Exception as e:
+                logger.error(f"Error checking ending conditions for session {session_id}: {e}")
+        
         response_data = {
             'new_story_segment': cleaned_generated_story_part,
             'choices': processed_choices_for_client, 
             'context': {'history': current_story_history},
             'active_systems': current_active_systems, # 최종적으로 업데이트된 (또는 변경 없는) 시스템 상태
-            'system_configs': world_system_configs
+            'system_configs': world_system_configs,
+            'world_endings': world_endings,
+            'triggered_ending': triggered_ending  # 엔딩 트리거 결과 추가
         }
         logger.debug(f"Data being sent to client for session {session_id}: {response_data}") # 최종 응답 데이터 로깅
 
@@ -394,6 +482,18 @@ def handle_action():
 
         if loaded_adventure:
             print(f"Loaded adventure from DB: {loaded_adventure.get('session_id')}")
+            
+            # 세계관 ID로부터 엔딩 정보를 조회
+            world_endings = []
+            world_id = loaded_adventure.get("world_id")
+            if world_id and db_client_instance:
+                try:
+                    endings_response = db_client_instance.table("worlds").select("endings").eq("id", str(world_id)).maybe_single().execute()
+                    if endings_response and hasattr(endings_response, 'data') and endings_response.data:
+                        world_endings = endings_response.data.get('endings', [])
+                except Exception as e:
+                    logger.error(f"Error loading world endings for world_id {world_id}: {e}")
+            
             story_sessions_data[session_id] = {
                 "history": loaded_adventure.get("history", ""),
                 "last_ai_response": loaded_adventure.get("last_ai_response", ""),
@@ -401,6 +501,7 @@ def handle_action():
                 "world_id": str(loaded_adventure.get("world_id")) if loaded_adventure.get("world_id") else None,
                 "active_systems": loaded_adventure.get("active_systems", {}),
                 "system_configs": loaded_adventure.get("system_configs", {}),
+                "world_endings": world_endings,
                 "user_id": user_id_from_token
             }
             response_data = {
@@ -411,8 +512,10 @@ def handle_action():
                 "choices": loaded_adventure.get("last_choices"),
                 "session_id": loaded_adventure.get("session_id"),
                 "world_id": str(loaded_adventure.get("world_id")) if loaded_adventure.get("world_id") else None,
+                "world_title": loaded_adventure.get("world_title", "불러온 모험"),
                 "active_systems": loaded_adventure.get("active_systems", {}),
-                "system_configs": loaded_adventure.get("system_configs", {})
+                "system_configs": loaded_adventure.get("system_configs", {}),
+                "world_endings": world_endings
             }
         else:
             print(f"No adventure found in DB for session_id: {session_id}, user_id: {user_id_from_token}. Or session_id was null.")
@@ -425,6 +528,39 @@ def handle_action():
                 "active_systems": {},
                 "system_configs": {}
             }
+    elif action_type == "generate_ending_story":
+        # 엔딩 스토리 생성 요청 처리
+        ending_name = data.get('ending_name', '')
+        ending_condition = data.get('ending_condition', '')
+        basic_ending_content = data.get('basic_ending_content', '')
+        story_history = data.get('story_history', '')
+        world_title = data.get('world_title', '')
+        game_stats = data.get('game_stats', {})
+        
+        if not ending_name or not basic_ending_content:
+            response_data = {"error": "엔딩 이름과 기본 내용이 필요합니다."}, 400
+        else:
+            try:
+                enhanced_ending = generate_enhanced_ending_story(
+                    ending_name=ending_name,
+                    ending_condition=ending_condition,
+                    basic_ending_content=basic_ending_content,
+                    story_history=story_history,
+                    world_title=world_title,
+                    game_stats=game_stats
+                )
+                
+                response_data = {
+                    "enhanced_ending": enhanced_ending,
+                    "original_ending": basic_ending_content
+                }
+                
+            except Exception as e:
+                logger.error(f"엔딩 스토리 생성 중 오류: {e}")
+                response_data = {
+                    "enhanced_ending": basic_ending_content,  # 실패 시 원본 반환
+                    "error": f"엔딩 스토리 생성 중 오류가 발생했습니다: {str(e)}"
+                }
     else: # 알 수 없는 action_type 또는 기타 경우
         response_data = {"error": f"알 수 없는 요청입니다: {action_type}"}, 400
 
