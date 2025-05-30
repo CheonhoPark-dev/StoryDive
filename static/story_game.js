@@ -758,11 +758,13 @@ export class StoryGameManager {
             
             const prompt = {
                 action_type: "generate_ending_story",
+                session_id: this.storySessionId || this.getSessionId(),
                 ending_name: ending.name,
                 ending_condition: ending.condition,
                 basic_ending_content: ending.content,
                 story_history: this.currentStoryContext.history,
                 world_title: this.currentWorldTitle,
+                world_key: this.currentWorldId,
                 game_stats: this.gameStats
             };
 

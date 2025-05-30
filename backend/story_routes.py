@@ -560,7 +560,7 @@ def handle_action():
                 response_data = {
                     "enhanced_ending": basic_ending_content,  # 실패 시 원본 반환
                     "error": f"엔딩 스토리 생성 중 오류가 발생했습니다: {str(e)}"
-                }
+            }
     else: # 알 수 없는 action_type 또는 기타 경우
         response_data = {"error": f"알 수 없는 요청입니다: {action_type}"}, 400
 

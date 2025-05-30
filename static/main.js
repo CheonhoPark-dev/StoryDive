@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // 인증 관리자 초기화 (가장 먼저)
         await authManager.initializeSupabase();
-        
+
         // EndingManager 초기화
         initEndingManager();
         
@@ -213,7 +213,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 export function setupCreateWorldPage(worldManager) {
     console.log("[DEBUG setupCreateWorldPage] Setting up create world page...");
     worldManager.setupSystemInputInterface('create-world-systems-container', 'create-add-world-system-btn', false); // 시스템 UI 초기화
-    worldManager.setupEndingInputInterface([]); // 엔딩 UI 초기화
+    worldManager.setupEndingInputInterface([]); // 엔딩 UI 초기화 (빈 배열로 시작)
 
     const form = document.getElementById('create-world-form');
     if (form) {
@@ -280,33 +280,33 @@ export async function setupEditWorldPage(worldManager, worldId) {
         return;
     }
 
-    // 폼 필드 채우기
-    if (worldManager.worldTitleInput) worldManager.worldTitleInput.value = worldData.title || '';
+            // 폼 필드 채우기
+            if (worldManager.worldTitleInput) worldManager.worldTitleInput.value = worldData.title || '';
     if (worldManager.detailSettingsTextarea) worldManager.detailSettingsTextarea.value = worldData.setting || '';
     if (worldManager.startPointTextarea) worldManager.startPointTextarea.value = worldData.starting_point || '';
-    if (worldManager.genreInput) worldManager.genreInput.value = worldData.genre || '';
+            if (worldManager.genreInput) worldManager.genreInput.value = worldData.genre || '';
     if (worldManager.tagsInput) {
         const tagsValue = worldData.tags ? (Array.isArray(worldData.tags) ? worldData.tags.join(', ') : worldData.tags) : '';
         worldManager.tagsInput.value = tagsValue;
     }
-    if (worldManager.isPublicCheckbox) worldManager.isPublicCheckbox.checked = worldData.is_public || false;
-    
-    if (worldManager.coverPreview && worldData.cover_image_url) {
-        worldManager.coverPreview.src = worldData.cover_image_url;
-    }
-    
-    // 게임 시스템 UI 초기화 및 데이터 로드
-    let systemsArray = [];
-    if (typeof worldData.systems === 'string') {
-        try {
-            systemsArray = JSON.parse(worldData.systems);
-        } catch (e) {
-            console.error("[DEBUG setupEditWorldPage] Error parsing systems JSON string:", e);
+            if (worldManager.isPublicCheckbox) worldManager.isPublicCheckbox.checked = worldData.is_public || false;
+            
+            if (worldManager.coverPreview && worldData.cover_image_url) {
+                worldManager.coverPreview.src = worldData.cover_image_url;
+            }
+            
+            // 게임 시스템 UI 초기화 및 데이터 로드
+            let systemsArray = [];
+            if (typeof worldData.systems === 'string') {
+                try {
+                    systemsArray = JSON.parse(worldData.systems);
+                } catch (e) {
+                    console.error("[DEBUG setupEditWorldPage] Error parsing systems JSON string:", e);
             systemsArray = [];
-        }
-    } else if (Array.isArray(worldData.systems)) {
-        systemsArray = worldData.systems;
-    }
+                }
+            } else if (Array.isArray(worldData.systems)) {
+                systemsArray = worldData.systems;
+            }
     worldManager.setupSystemInputInterface('edit-world-systems-container', 'edit-add-world-system-btn', true);
 
     // 시스템 설정 데이터 처리
@@ -339,49 +339,49 @@ export async function setupEditWorldPage(worldManager, worldId) {
         if (noSystemsMessage) noSystemsMessage.classList.add('hidden');
     }
 
-    // 엔딩 UI 초기화 및 데이터 로드
-    let endingsArray = [];
-    if (typeof worldData.endings === 'string') {
-        try {
-            endingsArray = JSON.parse(worldData.endings);
-        } catch (e) {
-            console.error("[DEBUG setupEditWorldPage] Error parsing endings JSON string:", e);
-            endingsArray = [];
-        }
-    } else if (Array.isArray(worldData.endings)) {
-        endingsArray = worldData.endings;
-    }
-    worldManager.setupEndingInputInterface(endingsArray);
+            // 엔딩 UI 초기화 및 데이터 로드
+            let endingsArray = [];
+            if (typeof worldData.endings === 'string') {
+                try {
+                    endingsArray = JSON.parse(worldData.endings);
+                } catch (e) {
+                    console.error("[DEBUG setupEditWorldPage] Error parsing endings JSON string:", e);
+                    endingsArray = [];
+                }
+            } else if (Array.isArray(worldData.endings)) {
+                endingsArray = worldData.endings;
+            }
+            worldManager.setupEndingInputInterface(endingsArray);
 
     // 폼 제출 이벤트 리스너
-    form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        console.log("[DEBUG setupEditWorldPage] Edit form submitted.");
-        
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                console.log("[DEBUG setupEditWorldPage] Edit form submitted.");
+                
         const formData = new FormData(form);
-        
+                
         // 시스템 및 엔딩 데이터 추가
-        const systems = worldManager.getSystemsData();
+                const systems = worldManager.getSystemsData();
         formData.set('systems', JSON.stringify(systems));
 
         const systemConfigs = worldManager.getSystemConfigsData();
         formData.set('system_configs', JSON.stringify(systemConfigs));
 
-        const endings = worldManager.getEndingsData();
-        formData.set('endings', JSON.stringify(endings));
+                const endings = worldManager.getEndingsData();
+                formData.set('endings', JSON.stringify(endings));
 
-        if (worldManager.isPublicCheckbox) {
-            formData.set('is_public', worldManager.isPublicCheckbox.checked.toString());
-        }
+                if (worldManager.isPublicCheckbox) {
+                    formData.set('is_public', worldManager.isPublicCheckbox.checked.toString());
+                }
 
-        console.log("[DEBUG setupEditWorldPage] FormData prepared for update:", Object.fromEntries(formData.entries()));
+                console.log("[DEBUG setupEditWorldPage] FormData prepared for update:", Object.fromEntries(formData.entries()));
 
-        try {
+                try {
             await worldManager.handleUpdateWorld(event, worldId, formData);
-        } catch (error) {
-            console.error("[DEBUG setupEditWorldPage] Error during world update:", error);
-        }
-    });
+                } catch (error) {
+                    console.error("[DEBUG setupEditWorldPage] Error during world update:", error);
+                }
+            });
 }
 
 // 공통 이벤트 리스너 설정

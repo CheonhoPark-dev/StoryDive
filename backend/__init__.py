@@ -145,4 +145,14 @@ def create_app():
         print("Flask session cleared.")
         return jsonify({"message": "Flask session cleared successfully"}), 200
 
+    @app.route('/privacy-policy')
+    def privacy_policy():
+        """개인정보처리방침 페이지를 렌더링합니다."""
+        return render_template('privacy_policy.html')
+
+    @app.route('/terms-of-service')
+    def terms_of_service():
+        """서비스 이용약관 페이지를 렌더링합니다."""
+        return render_template('terms_of_service.html')
+
     return app 

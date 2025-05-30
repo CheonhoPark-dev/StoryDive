@@ -26,8 +26,13 @@ export class AuthManager {
                 this.userEmailDisplay.textContent = '';
                 this.logoutButton.classList.add('hidden');
                 
-                // 로그인 안됐으면 로그인 페이지로 (현재 페이지가 로그인, API 경로 아니면)
-                if (window.location.pathname !== '/login' && !window.location.pathname.startsWith('/api/')) {
+                // 공개 페이지들은 로그인 없이도 접근 가능
+                const publicPages = ['/login', '/privacy-policy', '/terms-of-service'];
+                const isPublicPage = publicPages.includes(window.location.pathname);
+                const isApiPath = window.location.pathname.startsWith('/api/');
+                
+                // 로그인 안됐으면 로그인 페이지로 (공개 페이지나 API 경로가 아니면)
+                if (!isPublicPage && !isApiPath) {
                     window.location.href = '/login';
                 }
             }

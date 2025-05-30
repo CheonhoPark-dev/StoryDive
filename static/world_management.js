@@ -731,7 +731,7 @@ export class WorldManager {
         // create-world 페이지용 요소들
         const createEndingsContainer = document.getElementById('create-world-endings-container');
         const createAddEndingBtn = document.getElementById('create-add-world-ending-btn');
-        const createNoEndingsMessage = document.getElementById('no-endings-message');
+        const createNoEndingsMessage = document.getElementById('create-no-endings-message');
         
         // edit-world 페이지용 요소들 (필요시)
         const editEndingsContainer = document.getElementById('edit-world-endings-container');
@@ -868,7 +868,7 @@ export class WorldManager {
     // 엔딩 표시 상태 업데이트
     updateEndingVisibility() {
         const createWrapper = document.querySelector('#create-world-endings-container .endings-flex-wrapper');
-        const createMessage = document.getElementById('no-endings-message');
+        const createMessage = document.getElementById('create-no-endings-message');
         const editWrapper = document.querySelector('#edit-world-endings-container .endings-flex-wrapper');
         const editMessage = document.getElementById('edit-no-endings-message');
 
@@ -989,7 +989,7 @@ export class WorldManager {
         // 시스템 데이터 추가
         const systems = this.getSystemsData();
         if (systems.length > 0) {
-            formData.append('systems', JSON.stringify(systems));
+        formData.append('systems', JSON.stringify(systems));
         }
 
         // 시스템 설정 데이터 추가
@@ -1001,7 +1001,7 @@ export class WorldManager {
         // 엔딩 데이터 추가
         const endings = this.getEndingsData();
         if (endings.length > 0) {
-            formData.append('endings', JSON.stringify(endings));
+        formData.append('endings', JSON.stringify(endings));
         }
 
         // 커버 이미지 추가
@@ -1020,8 +1020,8 @@ export class WorldManager {
             if (feedbackElement) {
                 feedbackElement.textContent = '세계관 생성 중...';
                 feedbackElement.className = 'mt-4 text-sm text-blue-500';
-            }
-
+        }
+        
             // api.js의 함수 사용 (인증 헤더 자동 처리)
             const result = await api.createWorldWithFormData(formData);
             console.log("[DEBUG handleCreateWorld] World created successfully:", result);
@@ -1082,7 +1082,7 @@ export class WorldManager {
         const endingsWrapper = document.querySelector('#create-world-endings-container .endings-flex-wrapper');
         if (endingsWrapper) {
             endingsWrapper.innerHTML = '';
-            const noEndingsMessage = document.getElementById('no-endings-message');
+            const noEndingsMessage = document.getElementById('create-no-endings-message');
             if (noEndingsMessage) noEndingsMessage.classList.remove('hidden');
         }
     }

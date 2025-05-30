@@ -152,9 +152,9 @@
         </p>
         
         <div class="mt-6 flex justify-center space-x-4 text-xs text-gray-400">
-            <a href="#" class="hover:text-gray-600 transition-colors">이용약관</a>
+            <a href="{{ url_for('terms_of_service') }}" target="_blank" class="hover:text-gray-600 transition-colors">이용약관</a>
             <span>•</span>
-            <a href="#" class="hover:text-gray-600 transition-colors">개인정보처리방침</a>
+            <a href="{{ url_for('privacy_policy') }}" target="_blank" class="hover:text-gray-600 transition-colors">개인정보처리방침</a>
         </div>
     </div>
 

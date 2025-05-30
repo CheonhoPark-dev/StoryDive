@@ -1,0 +1,145 @@
+{% extends "layout.html" %}
+
+{% block title %}스토리 다이브 - AI 기반 Choose Your Own Adventure{% endblock %}
+
+{% block page_header %}스토리 다이브에 오신 것을 환영합니다{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto p-6">
+    <!-- Hero Section -->
+    <div class="text-center mb-12">
+        <h1 class="text-5xl font-bold text-header mb-6 bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+            스토리 다이브
+        </h1>
+        <p class="text-xl text-subheader mb-8 max-w-3xl mx-auto">
+            AI 기반의 인터랙티브 스토리 플랫폼에서 나만의 세계관을 만들고, 
+            무한한 가능성의 모험을 경험해보세요.
+        </p>
+        <div class="space-x-4">
+            <a href="/create-world" class="btn-primary px-8 py-3 text-lg font-medium">
+                <i class="fas fa-plus mr-2"></i>세계관 만들기
+            </a>
+            <a href="/" class="btn-secondary px-8 py-3 text-lg font-medium">
+                <i class="fas fa-play mr-2"></i>모험 시작하기
+            </a>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="grid md:grid-cols-3 gap-8 mb-12">
+        <div class="bg-content-card p-6 rounded-lg shadow-lg hover:shadow-indigo-500/20 transition-all">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-brain text-2xl text-white"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-header mb-3">AI 스토리 생성</h3>
+                <p class="text-body">
+                    Google Gemini AI가 만들어내는 무한한 스토리 가능성을 경험하세요. 
+                    여러분의 선택에 따라 이야기가 실시간으로 변화합니다.
+                </p>
+            </div>
+        </div>
+
+        <div class="bg-content-card p-6 rounded-lg shadow-lg hover:shadow-purple-500/20 transition-all">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-globe text-2xl text-white"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-header mb-3">나만의 세계관</h3>
+                <p class="text-body">
+                    창의력을 발휘해 독특한 세계관을 만들어보세요. 
+                    시스템, 엔딩, 스토리 설정까지 모든 것을 자유롭게 커스터마이징할 수 있습니다.
+                </p>
+            </div>
+        </div>
+
+        <div class="bg-content-card p-6 rounded-lg shadow-lg hover:shadow-green-500/20 transition-all">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-users text-2xl text-white"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-header mb-3">커뮤니티 공유</h3>
+                <p class="text-body">
+                    다른 사용자들이 만든 흥미진진한 세계관을 탐험하고, 
+                    여러분의 창작물을 공개해 많은 사람들과 함께 즐겨보세요.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- How it Works Section -->
+    <div class="bg-content-card p-8 rounded-lg shadow-lg mb-12">
+        <h2 class="text-3xl font-bold text-header text-center mb-8">어떻게 작동하나요?</h2>
+        <div class="grid md:grid-cols-4 gap-6">
+            <div class="text-center">
+                <div class="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white font-bold text-lg">
+                    1
+                </div>
+                <h4 class="font-semibold text-header mb-2">세계관 설정</h4>
+                <p class="text-sm text-body">배경, 장르, 시스템을 설정하여 나만의 세계를 만들어보세요.</p>
+            </div>
+            <div class="text-center">
+                <div class="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white font-bold text-lg">
+                    2
+                </div>
+                <h4 class="font-semibold text-header mb-2">AI 스토리 생성</h4>
+                <p class="text-sm text-body">AI가 여러분의 설정을 바탕으로 흥미진진한 스토리를 생성합니다.</p>
+            </div>
+            <div class="text-center">
+                <div class="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white font-bold text-lg">
+                    3
+                </div>
+                <h4 class="font-semibold text-header mb-2">선택과 진행</h4>
+                <p class="text-sm text-body">제시되는 선택지를 통해 스토리의 방향을 결정하세요.</p>
+            </div>
+            <div class="text-center">
+                <div class="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white font-bold text-lg">
+                    4
+                </div>
+                <h4 class="font-semibold text-header mb-2">엔딩 달성</h4>
+                <p class="text-sm text-body">여러분만의 독특한 엔딩에 도달해보세요.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Technology Section -->
+    <div class="bg-gradient-to-r from-indigo-900/30 to-purple-900/30 p-8 rounded-lg shadow-lg mb-12 border border-indigo-500/30">
+        <h2 class="text-3xl font-bold text-header text-center mb-8">최신 기술 스택</h2>
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 text-center">
+            <div>
+                <i class="fab fa-google text-4xl text-blue-400 mb-3"></i>
+                <h4 class="font-semibold text-header">Google Gemini</h4>
+                <p class="text-sm text-body">고품질 AI 스토리 생성</p>
+            </div>
+            <div>
+                <i class="fas fa-database text-4xl text-green-400 mb-3"></i>
+                <h4 class="font-semibold text-header">Supabase</h4>
+                <p class="text-sm text-body">안전한 클라우드 데이터베이스</p>
+            </div>
+            <div>
+                <i class="fab fa-python text-4xl text-yellow-400 mb-3"></i>
+                <h4 class="font-semibold text-header">Flask</h4>
+                <p class="text-sm text-body">빠르고 안정적인 백엔드</p>
+            </div>
+            <div>
+                <i class="fab fa-js-square text-4xl text-purple-400 mb-3"></i>
+                <h4 class="font-semibold text-header">Modern Web</h4>
+                <p class="text-sm text-body">반응형 웹 인터페이스</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Links -->
+    <div class="text-center space-x-6 text-subheader">
+        <a href="/privacy-policy" class="hover:text-indigo-400 transition-colors">
+            <i class="fas fa-shield-alt mr-1"></i>개인정보처리방침
+        </a>
+        <a href="/terms-of-service" class="hover:text-indigo-400 transition-colors">
+            <i class="fas fa-file-contract mr-1"></i>서비스 이용약관
+        </a>
+        <a href="mailto:privacy@storydive.app" class="hover:text-indigo-400 transition-colors">
+            <i class="fas fa-envelope mr-1"></i>문의하기
+        </a>
+    </div>
+</div>
+{% endblock %} 
